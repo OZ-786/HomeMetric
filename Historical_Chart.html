@@ -4,193 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0f172a">
-    <title>WaliTech | Historical</title>
+    <title>WaliTech | Historical Chart</title>
 
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* --- VARIABLES --- */
-        :root {
-            --bg: #020617;
-            --panel: #0f172a;
-            --border: #1e293b;
-            --text: #f8fafc;
-            --muted: #64748b;
-            --accent: #3b82f6;
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        /* --- VARIABLES & LAYOUT --- */
+        :root { --bg: #0f172a; --panel: #1e293b; --border: #334155; --text: #e2e8f0; --accent: #2563eb; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
         /* --- HEADER --- */
-        #header {
-            height: 55px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 16px;
-            background: var(--panel);
-            border-bottom: 1px solid var(--border);
-            z-index: 20;
-            flex-shrink: 0;
-        }
-
-        .brand {
-            text-decoration: none;
-            color: white;
-            font-weight: 700;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(255,255,255,0.05);
-            padding: 6px 12px;
-            border-radius: 8px;
-        }
-
-        select#sheetSelector {
-            background: var(--bg);
-            color: white;
-            border: 1px solid var(--border);
-            padding: 6px 10px;
-            border-radius: 6px;
-            outline: none;
-            font-size: 0.85rem;
-            max-width: 140px;
-        }
-
-        /* --- STATS BAR --- */
-        #stats-bar {
-            height: 45px;
-            background: rgba(15, 23, 42, 0.8);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            overflow-x: auto;
-            white-space: nowrap;
-            gap: 15px;
-            flex-shrink: 0;
-            /* Hide Scrollbar */
-            scrollbar-width: none; 
-            -ms-overflow-style: none;
-        }
-        #stats-bar::-webkit-scrollbar { display: none; }
-
-        .stat-item { display: flex; flex-direction: column; align-items: flex-start; }
-        .stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; font-weight: 700; }
-        .stat-val { font-size: 0.85rem; font-weight: 700; font-family: monospace; }
+        #header { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: var(--panel); border-bottom: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 20; transition: transform 0.3s; }
+        .brand { font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+        .brand span { white-space: nowrap; }
+        select#sheetSelector { background: var(--bg); color: white; border: 1px solid var(--border); padding: 8px; border-radius: 6px; outline: none; max-width: 140px; }
 
         /* --- CHART AREA --- */
-        #chart-wrapper {
-            flex: 1;
-            position: relative;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-        }
-        #chart-container { width: 100%; height: 100%; }
+        #chart-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* Stats Bar */
+        #stats-bar { height: 50px; flex-shrink: 0; background: rgba(30, 41, 59, 0.5); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-around; font-size: 0.85rem; padding: 0 10px; overflow-x: auto; white-space: nowrap; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; min-width: 80px; padding: 0 5px; }
+        .stat-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+        .stat-val { font-weight: 700; font-family: monospace; }
+        
+        #chart-container { flex: 1; position: relative; padding: 10px; min-height: 0; transition: all 0.3s; }
+        #main-chart { width: 100%; height: 100%; }
 
-        /* --- BOTTOM CONTROLS (Mobile Friendly) --- */
-        #controls {
-            background: var(--panel);
-            border-top: 1px solid var(--border);
-            padding: 10px 10px 20px 10px; /* Extra padding bottom for iPhone home bar */
-            z-index: 30;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+        /* Fullscreen Toggle */
+        .fs-btn { position: absolute; bottom: 20px; left: 20px; background: rgba(30, 41, 59, 0.8); color: #94a3b8; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; cursor: pointer; z-index: 10; font-size: 1.2rem; transition: 0.2s; }
+        .fs-btn:hover { color: white; background: var(--accent); }
 
-        /* Scrollable rows for buttons */
-        .control-row {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 2px;
-            scrollbar-width: none;
-        }
-        .control-row::-webkit-scrollbar { display: none; }
+        /* --- CONTROLS (Desktop Default) --- */
+        #controls { background: var(--panel); border-top: 1px solid var(--border); padding: 10px; z-index: 30; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .toggle-group { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 8px; }
+        .param-btn { background: transparent; border: 1px solid var(--border); color: #94a3b8; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .param-btn.active { border-color: transparent; color: white; box-shadow: 0 0 10px rgba(0,0,0,0.3); transform: scale(1.05); }
+        
+        .footer-tools { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #94a3b8; }
+        
+        /* Mobile FAB (Filter Button) - Hidden on Desktop */
+        #mobile-filter-fab { display: none; position: absolute; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: var(--accent); color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.4); z-index: 40; border: none; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; }
 
+        /* --- OVERLAYS --- */
+        .loading-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 50; backdrop-filter: blur(2px); }
+        .spinner { width: 40px; height: 40px; border: 4px solid #334155; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .status-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; pointer-events: none; }
+        
         /* Zoom Buttons */
-        .zoom-btn {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--muted);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
+        .zoom-wrapper { position: absolute; top: 10px; right: 10px; z-index: 10; overflow-x: auto; max-width: 100%; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 5px; }
+        /* Hide scrollbar for zoom */
+        .zoom-wrapper::-webkit-scrollbar { height: 0; width: 0; display: none; }
+        
+        .zoom-buttons { display: inline-flex; gap: 4px; padding-right: 10px; }
+        .zoom-btn { background: rgba(30, 41, 59, 0.9); border: 1px solid var(--border); color: #94a3b8; padding: 6px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; flex-shrink: 0; }
         .zoom-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-
-        /* Parameter Toggles */
-        .param-btn {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--muted);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-            flex-shrink: 0;
-            transition: 0.2s;
-        }
-        .param-btn.active { border-color: transparent; color: white; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
-
-        /* Footer Info */
-        .footer-tools {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.75rem;
-            color: var(--muted);
-            padding-top: 5px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-        }
-
-        /* Toggle Switch */
+        
+        /* Switch Toggle */
         .switch-wrapper { display: flex; align-items: center; gap: 8px; }
         .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #334155; transition: .4s; border-radius: 34px; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #475569; transition: .4s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #22c55e; }
+        input:checked + .slider { background-color: var(--accent); }
         input:checked + .slider:before { transform: translateX(16px); }
 
-        /* Overlays */
-        .loading-overlay { position: absolute; inset: 0; background: rgba(2, 6, 23, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
-        .spinner { width: 40px; height: 40px; border: 3px solid #1e293b; border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        #no-data-msg { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; color: var(--muted); width: 100%; }
-        #error-message { color: #ef4444; }
+        /* --- MOBILE OPTIMIZATIONS --- */
+        @media (max-width: 768px) {
+            .brand span { display: none; } /* Hide Text, keep Arrow */
+            
+            /* Controls become a "Bottom Sheet" popup */
+            #controls { 
+                position: fixed; bottom: 0; left: 0; right: 0; 
+                transform: translateY(110%); /* Hidden by default */
+                border-radius: 20px 20px 0 0; 
+                box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
+                padding-bottom: 30px; /* Safety area for swipe bar */
+            }
+            #controls.open { transform: translateY(0); }
+            
+            /* Show FAB on mobile */
+            #mobile-filter-fab { display: flex; }
+            
+            /* Drag handle for mobile controls */
+            #controls::before {
+                content: ''; display: block; width: 40px; height: 4px; 
+                background: #475569; margin: 0 auto 15px auto; border-radius: 2px;
+            }
+
+            /* Fullscreen Mode Styles */
+            body.fullscreen-mode #header { transform: translateY(-100%); position: absolute; width: 100%; }
+            body.fullscreen-mode #controls { transform: translateY(110%); }
+            body.fullscreen-mode #mobile-filter-fab { display: none; }
+            body.fullscreen-mode #stats-bar { display: none; }
+            body.fullscreen-mode #chart-wrapper { position: fixed; inset: 0; z-index: 100; background: var(--bg); height: 100dvh; }
+            body.fullscreen-mode #chart-container { padding: 0; }
+        }
     </style>
 
     <script>
-        // *** CONFIGURATION ***
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxH13m5DXcyBH2BZ0qp1H3GovZCXEDRbjnD5yzj_KZL3O_MAGXG9PKu8dQdyDHhX0Vi_A/exec";
         
         var chart = null;
@@ -202,6 +118,7 @@
         var liveSyncInterval = null;
         var lastDate = 0;
 
+        // Series Config
         var seriesConfig = [
             { id:0, name: 'Voltage', key: 'vol', unit: 'V',   color: '#3b82f6', visible: true,  icon: 'fa-bolt' },
             { id:1, name: 'Current', key: 'cur', unit: 'A',   color: '#a855f7', visible: false, icon: 'fa-flux-capacitor' },
@@ -217,12 +134,21 @@
 
         function initApp() {
             setLoading(true, "Connecting...");
-            renderZoomButtons();
-            renderToggleButtons();
+            renderButtons();
+            createZoomButtons();
             
+            // Close controls popup when clicking outside (on chart)
+            document.getElementById('chart-container').addEventListener('click', function() {
+                if(window.innerWidth <= 768) {
+                    document.getElementById('controls').classList.remove('open');
+                    document.getElementById('mobile-filter-fab').style.display = 'flex';
+                }
+            });
+
             $.ajax({
                 url: `${GOOGLE_SCRIPT_URL}?action=getDashboardState`,
-                dataType: 'json', timeout: 25000, 
+                dataType: 'json',
+                timeout: 25000, 
                 success: function(res) {
                     if(res.success && res.sheets.length > 0) {
                         populateSheetSelector(res.sheets);
@@ -237,12 +163,48 @@
             });
         }
 
-        // --- UI RENDERERS ---
-        function renderZoomButtons() {
-            const container = document.getElementById('zoom-row');
-            container.innerHTML = "";
-            const zooms = [{h:1,l:'1h'}, {h:6,l:'6h'}, {h:12,l:'12h'}, {h:24,l:'1D'}, {h:72,l:'3D'}, {h:168,l:'1W'}, {h:720,l:'1M'}];
+        function toggleMobileControls() {
+            const el = document.getElementById('controls');
+            const fab = document.getElementById('mobile-filter-fab');
+            const isOpen = el.classList.contains('open');
             
+            if (isOpen) {
+                el.classList.remove('open');
+                setTimeout(() => fab.style.display = 'flex', 200);
+            } else {
+                el.classList.add('open');
+                fab.style.display = 'none';
+            }
+        }
+
+        function toggleFullscreen() {
+            document.body.classList.toggle('fullscreen-mode');
+            const btn = document.querySelector('.fs-btn i');
+            
+            if(document.body.classList.contains('fullscreen-mode')) {
+                btn.className = 'fa-solid fa-compress';
+                // Hide popup if open
+                document.getElementById('controls').classList.remove('open');
+            } else {
+                btn.className = 'fa-solid fa-expand';
+                if(window.innerWidth <= 768) document.getElementById('mobile-filter-fab').style.display = 'flex';
+            }
+
+            // Trigger resize for chart
+            setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 300);
+        }
+
+        function createZoomButtons() {
+            const container = document.createElement('div');
+            container.className = 'zoom-buttons';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'zoom-wrapper';
+            
+            const zooms = [
+                {h:1,l:'1H'}, {h:3,l:'3H'}, {h:6,l:'6H'}, {h:12,l:'12H'}, 
+                {h:24,l:'1D'}, {h:72,l:'3D'}, {h:168,l:'1W'}, {h:720,l:'1M'}
+            ];
+
             zooms.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = `zoom-btn ${opt.h === 24 ? 'active' : ''}`;
@@ -250,17 +212,25 @@
                 btn.onclick = () => setZoom(opt.h, btn);
                 container.appendChild(btn);
             });
+            wrapper.appendChild(container);
+            document.getElementById('chart-container').appendChild(wrapper);
         }
 
-        function renderToggleButtons() {
-            const container = document.getElementById('toggle-row');
+        function setZoom(hours, btn) {
+            currentZoomHours = hours;
+            document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (allData.length > 0) updateChartWithData(allData);
+        }
+
+        function renderButtons() {
+            const container = document.getElementById('toggle-container');
             container.innerHTML = '';
             
-            // Hide All Button
             const hideBtn = document.createElement('button');
             hideBtn.className = 'param-btn';
-            hideBtn.style.color = '#ef4444';
             hideBtn.style.borderColor = '#ef4444';
+            hideBtn.style.color = '#ef4444';
             hideBtn.innerHTML = `<i class="fa-solid fa-eye-slash"></i> Hide All`;
             hideBtn.onclick = hideAllSeries;
             container.appendChild(hideBtn);
@@ -271,18 +241,11 @@
                 btn.className = `param-btn ${s.visible ? 'active' : ''}`;
                 btn.style.backgroundColor = s.visible ? s.color : 'transparent';
                 btn.style.borderColor = s.visible ? 'transparent' : '#334155';
-                btn.style.color = s.visible ? 'white' : '#64748b';
+                btn.style.color = s.visible ? 'white' : '#94a3b8';
                 btn.innerHTML = `<i class="fa-solid ${s.icon}"></i> ${s.name}`;
                 btn.onclick = () => toggleSeries(idx, btn);
                 container.appendChild(btn);
             });
-        }
-
-        function setZoom(hours, btn) {
-            currentZoomHours = hours;
-            document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            if (allData.length > 0) updateChartWithData(allData);
         }
 
         function populateSheetSelector(sheets) {
@@ -292,7 +255,6 @@
             sel.onchange = (e) => loadChartData(e.target.value);
         }
 
-        // --- DATA LOADING ---
         function loadChartData(sheetName) {
             if(isChartLoading) return;
             isChartLoading = true;
@@ -301,37 +263,40 @@
             document.getElementById('no-data-message').style.display = 'none';
             document.getElementById('error-message').style.display = 'none';
 
+            if(chart) { chart.destroy(); chart = null; }
+            allData = [];
+            lastDate = 0;
+
             $.ajax({
                 url: `${GOOGLE_SCRIPT_URL}?action=getMonthData&sheet=${encodeURIComponent(sheetName)}`,
                 dataType: 'json', timeout: 60000,
                 success: function(res) {
-                    if (!res.success) { showError(res.error); return; }
-                    if (!res.data || res.data.length === 0) {
-                        document.getElementById('no-data-message').style.display = 'block';
-                        if(chart) chart.updateSeries([]);
-                        return;
-                    }
-                    
-                    // Parse Data safely
-                    allData = res.data.map(d => {
-                        let clean = {};
-                        // Use Robust Date Parser
-                        clean.ts = (typeof d.ts === 'string') ? parseCustomDate(d.ts) : d.ts;
-                        seriesConfig.forEach(s => { if(d[s.key] !== undefined) clean[s.key] = Number(d[s.key]); });
-                        return clean;
-                    }).sort((a,b) => a.ts - b.ts);
+                    try {
+                        if (!res.success) { showError(res.error); return; }
+                        if (!res.data || res.data.length === 0) {
+                            document.getElementById('no-data-message').style.display = 'block';
+                            return;
+                        }
+                        
+                        allData = res.data.map(d => {
+                            let clean = { ts: (typeof d.ts === 'string' ? parseCustomDate(d.ts) : d.ts) };
+                            seriesConfig.forEach(s => { if(d[s.key] !== undefined) clean[s.key] = Number(d[s.key]); });
+                            return clean;
+                        }).sort((a, b) => a.ts - b.ts);
 
-                    if(allData.length > 0) lastDate = allData[allData.length-1].ts;
+                        if (allData.length > 0) {
+                            lastDate = allData[allData.length - 1].ts;
+                        }
 
-                    updateChartWithData(allData);
-                    startLiveSync();
+                        updateChartWithData(allData);
+                        startLiveSync();
+                    } catch(e) { showError("Data Error"); }
                 },
                 error: function(e) { showError("Load Failed."); },
                 complete: function() { setLoading(false); isChartLoading = false; }
             });
         }
 
-        // --- CHART ENGINE ---
         function updateChartWithData(data) {
             if(!data || data.length === 0) return;
 
@@ -341,11 +306,23 @@
             
             updateStats(filtered);
 
-            // Downsampling for mobile performance
-            const rate = Math.ceil(filtered.length / 600); // Keep max 600 points
+            // Off-Grid Detection (>11 mins gap)
+            const annotations = [];
+            for(let i=1; i<filtered.length; i++) {
+                if(filtered[i].ts - filtered[i-1].ts > 11 * 60 * 1000) {
+                    annotations.push({
+                        x: filtered[i-1].ts,
+                        x2: filtered[i].ts,
+                        fillColor: '#ef4444',
+                        opacity: 0.3,
+                        label: { text: 'OFF', style: { color: '#fff', background: '#ef4444', fontSize: '10px' } }
+                    });
+                }
+            }
+
+            const rate = Math.ceil(filtered.length / 800);
             const sampled = filtered.filter((_, i) => i % rate === 0);
             
-            // Build Series
             const series = [];
             const yAxes = [];
             let activeCount = 0;
@@ -358,60 +335,45 @@
                         color: cfg.color,
                         type: 'line'
                     });
-
-                    // Multi-Y Axis Logic
                     yAxes.push({
                         seriesName: cfg.name,
                         show: true,
-                        opposite: (activeCount % 2 !== 0), // Alternate left/right
+                        opposite: (activeCount % 2 !== 0),
                         axisTicks: { show: true },
                         axisBorder: { show: true, color: cfg.color },
-                        labels: { 
-                            style: { colors: cfg.color },
-                            formatter: (v) => v.toFixed(cfg.key === 'cost' ? 0 : 2) // Cleaner numbers
-                        },
-                        title: { text: cfg.unit, style: { color: cfg.color, fontSize: '10px' } },
-                        forceNiceScale: true
+                        forceNiceScale: true,
+                        tickAmount: 6,
+                        labels: { style: { colors: cfg.color }, formatter: (v) => v.toFixed(2) },
+                        title: { text: cfg.unit, style: { color: cfg.color } },
                     });
                     activeCount++;
                 }
             });
 
-            if(yAxes.length === 0) yAxes.push({ show: false });
+            if (yAxes.length === 0) yAxes.push({ show: false });
 
             const options = {
                 series: series,
-                chart: { 
-                    type: 'line', 
-                    height: '100%', 
-                    background: 'transparent', 
-                    foreColor: '#94a3b8', 
-                    animations: { enabled: false }, // Critical for mobile speed
-                    toolbar: { show: false } 
-                },
+                chart: { type: 'line', height: '100%', background: 'transparent', foreColor: '#94a3b8', animations: { enabled: false }, toolbar: { show: false } },
                 dataLabels: { enabled: false },
                 stroke: { curve: 'smooth', width: 2 },
-                grid: { borderColor: '#1e293b', strokeDashArray: 4 },
+                grid: { borderColor: '#334155', strokeDashArray: 4 },
                 xaxis: { 
                     type: 'datetime', 
                     tooltip: { enabled: false },
-                    axisBorder: { show: false }, axisTicks: { show: false },
-                    labels: { datetimeUTC: false }
+                    axisBorder: { show: false }, axisTicks: { show: false }
                 },
                 yaxis: yAxes,
-                tooltip: { 
-                    theme: 'dark', 
-                    x: { format: 'dd MMM HH:mm' },
-                    fixed: { enabled: false, position: 'topRight' } // Follows finger
-                },
-                legend: { show: false } // Hidden to save space
+                annotations: { xaxis: annotations },
+                tooltip: { theme: 'dark', x: { format: 'dd MMM HH:mm' } },
+                legend: { show: false }
             };
             
             if (!chart) {
                 chart = new ApexCharts(document.querySelector("#main-chart"), options);
                 chart.render();
             } else {
-                chart.updateOptions(options, true, true);
+                chart.updateOptions(options, true, true); 
             }
         }
 
@@ -420,33 +382,28 @@
             container.innerHTML = "";
             seriesConfig.forEach(cfg => {
                 if(cfg.visible) {
-                    let max = -Infinity;
-                    data.forEach(d => { if(d[cfg.key] > max) max = d[cfg.key]; });
-                    if(max > -Infinity) {
+                    let max = -999999;
+                    data.forEach(d => {
+                        let val = d[cfg.key];
+                        if(val !== undefined && val > max) max = val;
+                    });
+                    if(max > -999999) {
                         let div = document.createElement('div');
                         div.className = 'stat-item';
-                        div.innerHTML = `<span class="stat-label" style="color:${cfg.color}">${cfg.name}</span><span class="stat-val" style="color:${cfg.color}">${max.toFixed(2)}<span style="font-size:0.7em">${cfg.unit}</span></span>`;
+                        div.innerHTML = `<span class="stat-label" style="color:${cfg.color}">${cfg.name}</span><span class="stat-val" style="color:${cfg.color}">${max.toFixed(2)} <span style="font-size:0.7em; opacity:0.7">${cfg.unit}</span></span>`;
                         container.appendChild(div);
                     }
                 }
             });
         }
 
-        // --- INTERACTION ---
         function toggleSeries(index, btn) {
             const cfg = seriesConfig[index];
             cfg.visible = !cfg.visible;
-            
             btn.classList.toggle('active');
-            if(cfg.visible) {
-                btn.style.backgroundColor = cfg.color;
-                btn.style.borderColor = 'transparent';
-                btn.style.color = 'white';
-            } else {
-                btn.style.backgroundColor = 'transparent';
-                btn.style.borderColor = '#1e293b';
-                btn.style.color = '#64748b';
-            }
+            btn.style.backgroundColor = cfg.visible ? cfg.color : 'transparent';
+            btn.style.borderColor = cfg.visible ? 'transparent' : '#334155';
+            btn.style.color = cfg.visible ? 'white' : '#94a3b8';
             if (allData.length > 0) updateChartWithData(allData);
         }
 
@@ -454,17 +411,11 @@
             seriesConfig.forEach((cfg, idx) => {
                 cfg.visible = false;
                 const btn = document.getElementById(`btn-${idx}`);
-                if(btn) { 
-                    btn.classList.remove('active'); 
-                    btn.style.backgroundColor = 'transparent'; 
-                    btn.style.borderColor = '#1e293b';
-                    btn.style.color = '#64748b';
-                }
+                if(btn) { btn.classList.remove('active'); btn.style.backgroundColor = 'transparent'; btn.style.borderColor = '#334155'; btn.style.color = '#94a3b8'; }
             });
-            toggleSeries(0, document.getElementById('btn-0')); // Keep Voltage
+            toggleSeries(0, document.getElementById('btn-0'));
         }
 
-        // --- SYNC & UTILS ---
         function startLiveSync() {
             if (liveSyncInterval) clearInterval(liveSyncInterval);
             if (currentSheetName === latestSheetName && document.getElementById("liveToggle").checked) {
@@ -474,14 +425,16 @@
 
         function liveSync() {
             if (!document.getElementById("liveToggle").checked || isChartLoading || currentSheetName !== latestSheetName) return;
+            
             $.getJSON(`${GOOGLE_SCRIPT_URL}?action=getDashboardState`, function(res) {
                 if(res.success && res.latest) {
                     const l = res.latest;
                     const serverTs = parseCustomDate(l.ts);
+
                     if (serverTs > lastDate) {
                         lastDate = serverTs;
                         allData.push({ ts: serverTs, temp: l.temp, vol: l.vol, cur: l.cur, pow: l.pow, freq: l.freq, pf: l.pf, eng: l.monthEng, cost: l.monthCost });
-                        if (allData.length > 15000) allData.shift();
+                        if (allData.length > 15000) allData = allData.slice(-15000);
                         updateChartWithData(allData);
                     }
                 }
@@ -490,10 +443,9 @@
 
         function parseCustomDate(dateStr) {
             if(typeof dateStr !== 'string') return new Date().getTime();
-            // Expected format: dd/mm/yyyy HH:mm:ss
             const parts = dateStr.split(/[\s\/:]/); 
             if(parts.length >= 6) {
-                return new Date(parts[2], parts[1]-1, parts[0], parts[3], parts[4], parts[5]).getTime();
+                return new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4], parts[5]).getTime();
             }
             return new Date().getTime();
         }
@@ -509,43 +461,34 @@
     </script>
 </head>
 <body>
+    <div id="loader" class="loading-overlay"><div class="spinner"></div><p id="loader-text" style="margin-top:15px; color:#cbd5e1; font-size:0.9rem;">Loading...</p></div>
 
-    <div id="loader" class="loading-overlay"><div class="spinner"></div><p id="loader-text" style="margin-top:15px; font-size:0.85rem; color:#94a3b8;">Loading...</p></div>
-
-    <!-- 1. Header -->
     <div id="header">
-        <a href="index.html" class="brand"><i class="fa-solid fa-chevron-left"></i><span>Back</span></a>
+        <div class="brand"><a href="index.html" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-chevron-left"></i><span>WaliTech | Historical Chart</span></a></div>
         <select id="sheetSelector"><option>Loading...</option></select>
     </div>
 
-    <!-- 2. Stats Scrollbar -->
-    <div id="stats-bar"></div>
-
-    <!-- 3. Main Chart -->
     <div id="chart-wrapper">
+        <div id="stats-bar"></div>
         <div id="chart-container">
             <div id="main-chart"></div>
-            <div id="no-data-message" class="status-msg">
-                <i class="fa-regular fa-folder-open fa-3x" style="opacity:0.5; margin-bottom:10px;"></i><br>No Data Available
-            </div>
+            <!-- Fullscreen Button -->
+            <button class="fs-btn" onclick="toggleFullscreen()"><i class="fa-solid fa-expand"></i></button>
+            <div id="no-data-message" class="status-msg"><i class="fa-regular fa-folder-open fa-3x" style="margin-bottom:10px; opacity:0.5;"></i><br>No Data Available</div>
             <div id="error-message" class="status-msg"></div>
         </div>
     </div>
 
-    <!-- 4. Bottom Controls (Scrollable) -->
+    <!-- Mobile Trigger for Controls -->
+    <button id="mobile-filter-fab" onclick="toggleMobileControls()"><i class="fa-solid fa-sliders"></i></button>
+
+    <!-- Controls Panel (Slides up on Mobile) -->
     <div id="controls">
-        <!-- Row 1: Zoom Buttons -->
-        <div id="zoom-row" class="control-row"></div>
-        
-        <!-- Row 2: Series Toggles -->
-        <div id="toggle-row" class="control-row" style="margin-top:5px;"></div>
-        
-        <!-- Row 3: Footer Tools -->
-        <div class="footer-tools" style="margin-top:10px;">
+        <div id="toggle-container" class="toggle-group"></div>
+        <div class="footer-tools">
             <div class="switch-wrapper"><label class="switch"><input type="checkbox" id="liveToggle" checked><span class="slider"></span></label><span>Live Sync</span></div>
-            <span>v3.5 Mobile</span>
+            <span style="opacity:0.5;">v3.3</span>
         </div>
     </div>
-
 </body>
 </html>
