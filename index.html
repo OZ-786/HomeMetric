@@ -49,6 +49,7 @@
       .stat-val { font-size: 1.1rem; }
       .chart-container { height: 250px !important; }
       #page-dashboard .grid-cols-5 { grid-template-columns: repeat(2, 1fr); }
+      .header-content { margin-left: 56px; } /* Space for the menu button */
     }
   </style>
 </head>
@@ -91,11 +92,6 @@
 
   <div id="mobile-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
 
-  <!-- Mobile Menu Toggle Button -->
-  <button id="mobile-menu-toggle" onclick="toggleMobileMenu()" class="md:hidden fixed top-4 left-4 z-40 bg-blue-600 text-white p-3 rounded-full shadow-lg">
-    <i class="fa-solid fa-bars"></i>
-  </button>
-
   <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col z-30 transition-all duration-300 ease-in-out mobile-menu-closed md:relative md:translate-x-0 md:w-64">
     <div class="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-700 justify-between">
       <div class="flex items-center"><i class="fa-solid fa-bolt text-blue-600 text-xl mr-2"></i><span class="font-bold text-lg text-slate-800 dark:text-white">WaliTech</span></div>
@@ -137,9 +133,22 @@
   </aside>
 
   <main id="main-content" class="flex-1 flex flex-col min-w-0 relative bg-slate-50 dark:bg-slate-900 transition-colors duration-300 overflow-auto touch-action-none">
-    <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 z-10 transition-colors duration-300">
-      <div class="flex items-center">
-        <button onclick="toggleMobileMenu()" class="hidden md:flex mr-4 text-slate-500 p-2"><i class="fa-solid fa-bars text-xl"></i></button>
+    <!-- Mobile Menu Toggle Button (Now inside header) -->
+    <button
+      id="mobile-menu-toggle"
+      onclick="toggleMobileMenu()"
+      class="md:hidden fixed top-3 left-3 z-40 
+            bg-blue-10 text-black 
+            p-2 rounded-md 
+            shadow-sm hover:shadow 
+            transition"
+    >
+      <i class="fa-solid fa-bars text-sm"></i>
+    </button>
+
+
+    <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 md:px-4 pl-16 md:pl-4 z-10 transition-colors duration-300">
+      <div class="flex items-center header-content">
         <h1 class="text-lg font-bold text-slate-800 dark:text-white" id="page-title">Dashboard</h1>
       </div>
       <div class="flex items-center gap-3">
@@ -260,6 +269,25 @@
       loadSettings();
       setupTouchGestures();
       setupAutoHideMenu();
+      
+      // Hide mobile menu toggle when sidebar is open
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('mobile-menu-toggle');
+      
+      // Observe sidebar class changes
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.attributeName === 'class') {
+            if (sidebar.classList.contains('mobile-menu-closed')) {
+              toggleBtn.classList.remove('hidden');
+            } else {
+              toggleBtn.classList.add('hidden');
+            }
+          }
+        });
+      });
+      
+      observer.observe(sidebar, { attributes: true });
     };
 
     function setupTouchGestures() {
@@ -345,7 +373,6 @@
       sidebar.classList.toggle('mobile-menu-closed');
       sidebar.classList.toggle('mobile-menu-open');
       overlay.classList.toggle('hidden');
-      toggleBtn.classList.toggle('hidden');
       
       // Reset auto-hide timer when menu is toggled
       if (!sidebar.classList.contains('mobile-menu-closed')) {
