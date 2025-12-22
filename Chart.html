@@ -3,7 +3,10 @@
   <head>
     <meta content="text/html; charset=UTF-8" http-equiv="content-type">
     <meta name="theme-color" content="#000000" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- FORCED DESKTOP VIEWPORT -->
+    <meta name="viewport" content="width=1280, initial-scale=0.3, user-scalable=yes">
+    
     <title>WaliTech | Historical Chart Pro</title>
    
     <!-- Libraries -->
@@ -13,7 +16,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
    
     <style>
-      /* --- FLEXBOX LAYOUT (Fixes Mobile Cut-off) --- */
       html, body {
         height: 100%;
         margin: 0;
@@ -21,25 +23,28 @@
         background-color: #000000;
         color: white;
         font-family: 'Segoe UI', sans-serif;
-        overflow: hidden; /* Prevent scrolling on body */
+        
+        /* FORCE DESKTOP WIDTH */
+        min-width: 1280px; 
+        overflow-x: auto;
       }
 
       body {
         display: flex;
-        flex-direction: column; /* Stack Chart on top of Controls */
+        flex-direction: column; 
       }
 
       /* --- BACK BUTTON --- */
       #back-btn {
         position: absolute;
-        top: 10px;
-        left: 10px;
+        top: 15px;
+        left: 15px;
         z-index: 100;
         color: rgba(255,255,255,0.7);
         text-decoration: none;
-        font-size: 12px;
+        font-size: 14px;
         background: rgba(20, 20, 20, 0.8);
-        padding: 5px 10px;
+        padding: 8px 15px;
         border-radius: 4px;
         border: 1px solid #333;
         font-weight: 600;
@@ -47,24 +52,28 @@
 
       /* --- CHART CONTAINER --- */
       #chart-container {
-        flex: 1; /* Takes all available remaining height */
+        flex: 1; 
         width: 100%;
-        min-height: 0; /* Important for flex containers */
+        min-height: 0; 
         position: relative;
       }
 
       /* --- CONTROLS AREA --- */
       #below-chart {
-        flex-shrink: 0; /* Do not shrink this area */
+        flex-shrink: 0; 
         background-color: #1a1a1a;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 15px; /* More space for desktop view */
         border-top: 1px solid #333;
-        padding: 10px 5px;
-        flex-wrap: wrap; /* Allow wrapping on very small screens */
-        min-height: 60px;
+        padding: 15px 10px;
+        
+        /* PREVENT WRAPPING FOR DESKTOP LOOK */
+        flex-wrap: nowrap; 
+        white-space: nowrap;
+        
+        min-height: 70px;
         z-index: 50;
       }
 
@@ -73,23 +82,23 @@
           display:flex; 
           flex-direction: column; 
           align-items: center; 
-          font-size: 9px; 
+          font-size: 11px; /* Larger font for desktop view */
           color: #bfbfbf;
-          min-width: 60px;
+          min-width: 80px;
       }
 
       .buttt, button {
         background-color:#004b5ef8;
         border-radius:4px;
         color:#ffffff;
-        padding: 6px 4px;
+        padding: 8px 10px;
         border: 1px solid #333;
         outline: none;
         cursor: pointer;
-        font-size: 11px;
+        font-size: 13px; /* Larger font */
         width: 100%;
         text-align: center;
-        margin-top: 2px;
+        margin-top: 4px;
       }
       
       #buttonLoad { background-color:#691335; }
@@ -100,6 +109,7 @@
         transform: translate(-50%, -50%);
         text-align: center;
         font-family: 'Courier New', Courier, monospace;
+        font-size: 16px;
       }
       
       .loading-msg img { height: 150px; width: 150px; }
@@ -118,8 +128,7 @@
             },
             type: 'spline', 
             style: { fontFamily: "'Segoe UI', sans-serif" },
-            // Add spacing for the Back button
-            spacingTop: 40 
+            spacingTop: 50 
         },
         yAxis: {
             gridLineColor: '#333333',
@@ -134,19 +143,7 @@
         legend: {
             itemStyle: { color: '#bfbfbf', fontWeight: 'bold' },
             itemHoverStyle: { color: '#33cccc' },
-            itemHiddenStyle: { color: 'gray' },
-            // Make legend scrollable on mobile if too many items
-            navigation: {
-                activeColor: '#3E576F',
-                animation: true,
-                arrowSize: 12,
-                inactiveColor: '#CCC',
-                style: {
-                    fontWeight: 'bold',
-                    color: '#333',
-                    fontSize: '12px'
-                }
-            }
+            itemHiddenStyle: { color: 'gray' }
         },
         rangeSelector: {
             buttonTheme: {
@@ -173,11 +170,11 @@
             barBackgroundColor: '#333333',
             trackBackgroundColor: '#1a1a1a',
             trackBorderColor: '#333333',
-            height: 10 // Thinner scrollbar for mobile
+            height: 14 
         },
         navigator: {
             enabled: true,
-            height: 30, // Smaller navigator for mobile
+            height: 40, 
             maskFill: 'rgba(51, 102, 255, 0.2)',
             outlineColor: '#333333',
             xAxis: { gridLineColor: '#333333' }
@@ -297,34 +294,11 @@
                     { count: 3, type: 'day', text: '3D' },
                     { type: 'all', text: 'All' }
                 ],
-                inputEnabled: true, // Enabled by default, disabled via responsive rules below
+                inputEnabled: true, // Always enabled in desktop mode
                 selected: 3
             },
             
-            // --- MOBILE RESPONSIVE RULES ---
-            responsive: {
-                rules: [{
-                    condition: {
-                        maxWidth: 500 // When screen is smaller than 500px (Mobile)
-                    },
-                    chartOptions: {
-                        rangeSelector: {
-                            inputEnabled: false, // Hide Date Inputs (Fixes overlapping)
-                            buttonSpacing: 5,
-                            labelStyle: { display: 'none' } // Hide "Zoom" label
-                        },
-                        legend: {
-                            align: 'center',
-                            verticalAlign: 'bottom',
-                            layout: 'horizontal'
-                        },
-                        yAxis: {
-                            labels: { align: 'left', x: 0, y: -2 }, // Move labels inside to save space
-                            title: { text: null } // Hide axis title on very small screens
-                        }
-                    }
-                }]
-            },
+            // REMOVED RESPONSIVE RULES TO FORCE DESKTOP LAYOUT
 
             title: { text: '' },
             plotOptions: {
@@ -458,7 +432,7 @@
   </head>
   <body>
     <!-- Back Button -->
-    <a href="index.html" id="back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+    <a href="index.html" id="back-btn"><i class="fa-solid fa-arrow-left"></i> Home</a>
 
     <div id="chart-container">
         <!-- Initial Loading View -->
@@ -493,7 +467,7 @@
 	  
         <div style="display:flex; align-items:center; margin-left:10px;">
           <input id="Update" name="Update" type="checkbox" checked>
-          <span style="font-family: Lucida Grande; font-size: 10px; margin-left:3px; color:#bfbfbf;">Live Sync</span> 
+          <span style="font-family: Lucida Grande; font-size: 13px; margin-left:3px; color:#bfbfbf;">Live Sync</span> 
         </div>
 
     </div>
