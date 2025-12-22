@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+    <meta name="theme-color" content="#000000" />
+    
+    <!-- FORCED DESKTOP VIEWPORT -->
+    <meta name="viewport" content="width=1280, initial-scale=0.3, user-scalable=yes">
+    
+    <title>WaliTech | Historical Chart Pro</title>
+   
+    <!-- Libraries -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highstock/6.0.3/highstock.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highstock/6.0.3/modules/exporting.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+   
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #000000;
+        color: white;
+        font-family: 'Segoe UI', sans-serif;
+        
+        /* FORCE DESKTOP WIDTH */
+        min-width: 1280px; 
+        overflow-x: auto;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column; 
+      }
+
+      /* --- BACK BUTTON --- */
+      #back-btn {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        z-index: 100;
+        color: rgba(255,255,255,0.7);
+        text-decoration: none;
+        font-size: 14px;
+        background: rgba(20, 20, 20, 0.8);
+        padding: 8px 15px;
+        border-radius: 4px;
+        border: 1px solid #333;
+        font-weight: 600;
+      }
+
+      /* --- CHART CONTAINER --- */
+      #chart-container {
+        flex: 1; 
+        width: 100%;
+        min-height: 0; 
+        position: relative;
+      }
+
+      /* --- CONTROLS AREA --- */
+      #below-chart {
+        flex-shrink: 0; 
+        background-color: #1a1a1a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px; /* More space for desktop view */
+        border-top: 1px solid #333;
+        padding: 15px 10px;
+        
+        /* PREVENT WRAPPING FOR DESKTOP LOOK */
+        flex-wrap: nowrap; 
+        white-space: nowrap;
+        
+        min-height: 70px;
+        z-index: 50;
+      }
+
+      /* --- UI ELEMENTS --- */
+      .control-group {
+          display:flex; 
+          flex-direction: column; 
+          align-items: center; 
+          font-size: 11px; /* Larger font for desktop view */
+          color: #bfbfbf;
+          min-width: 80px;
+      }
+
+      .buttt, button {
+        background-color:#004b5ef8;
+        border-radius:4px;
+        color:#ffffff;
+        padding: 8px 10px;
+        border: 1px solid #333;
+        outline: none;
+        cursor: pointer;
+        font-size: 13px; /* Larger font */
+        width: 100%;
+        text-align: center;
+        margin-top: 4px;
+      }
+      
+      #buttonLoad { background-color:#691335; }
+      
+      .loading-msg {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 16px;
+      }
+      
+      .loading-msg img { height: 150px; width: 150px; }
+
+    </style>
+	
+    <script type="text/javascript">
+    
+	Highcharts.setOptions({
+        global: { useUTC: false },
+        colors: ['#3366ff', '#ff0000', '#f4740b', '#ff0066', '#FFFF33', '#54e49e', '#2b908f', '#f45b5b', '#91e8e1'],
+        chart: {
+            backgroundColor: {
+                linearGradient: [0, 0, 500, 500],
+                stops: [[0, 'rgb(0, 0, 0)'], [1, 'rgb(10, 10, 10)']]
+            },
+            type: 'spline', 
+            style: { fontFamily: "'Segoe UI', sans-serif" },
+            spacingTop: 50 
+        },
+        yAxis: {
+            gridLineColor: '#333333',
+            labels: { style: { color: '#bfbfbf' } },
+            title: { style: { color: '#bfbfbf' } }
+        },
+        xAxis: {
+            gridLineColor: '#333333',
+            labels: { style: { color: '#bfbfbf' } },
+            title: { style: { color: '#bfbfbf' } }
+        },
+        legend: {
+            itemStyle: { color: '#bfbfbf', fontWeight: 'bold' },
+            itemHoverStyle: { color: '#33cccc' },
+            itemHiddenStyle: { color: 'gray' }
+        },
+        rangeSelector: {
+            buttonTheme: {
+                fill: '#1a1a1a',
+                stroke: '#000000',
+                style: { color: '#bfbfbf', fontWeight: 'bold' },
+                states: {
+                    hover: { fill: '#333333', style: { color: 'white' } },
+                    select: { fill: '#004b5e', style: { color: 'white' } }
+                }
+            },
+            inputStyle: { color: '#bfbfbf', fontWeight: 'bold', backgroundColor: '#333' },
+            labelStyle: { color: '#bfbfbf', fontWeight: 'bold' },
+            selected: 3
+        },
+        tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            style: { color: '#F0F0F0' },
+            valueDecimals: 2,
+            shared: true,
+            xDateFormat: '%Y-%m-%d %H:%M:%S'
+        },
+        scrollbar: {
+            barBackgroundColor: '#333333',
+            trackBackgroundColor: '#1a1a1a',
+            trackBorderColor: '#333333',
+            height: 14 
+        },
+        navigator: {
+            enabled: true,
+            height: 40, 
+            maskFill: 'rgba(51, 102, 255, 0.2)',
+            outlineColor: '#333333',
+            xAxis: { gridLineColor: '#333333' }
+        }
+    });
+
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxH13m5DXcyBH2BZ0qp1H3GovZCXEDRbjnD5yzj_KZL3O_MAGXG9PKu8dQdyDHhX0Vi_A/exec";
+
+    var dynamicChart;
+    var currentSheetName = "";
+    var latestSheetName = "";
+    var allData = [];
+    var liveSyncInterval = null;
+    var lastDate = 0;
+
+    var seriesConfig = [
+        { name: 'VOLTAGE', key: 'vol', unit: 'V', visible: true, color: '#3366ff' },
+        { name: 'POWER', key: 'pow', unit: 'W', visible: true, color: '#ff0000' },
+        { name: 'FREQUENCY', key: 'freq', unit: 'Hz', visible: false, color: '#f4740b' },
+        { name: 'ENERGY', key: 'eng', unit: 'kWh', visible: false, color: '#ff0066' },
+        { name: 'CURRENT', key: 'cur', unit: 'A', visible: false, color: '#FFFF33' },
+        { name: 'PF', key: 'pf', unit: '', visible: false, color: '#54e49e' },
+        { name: 'TEMP', key: 'temp', unit: '°C', visible: false, color: '#2b908f' },
+        { name: 'COST', key: 'cost', unit: '₦', visible: false, color: '#f45b5b' }
+    ];
+
+    $(document).ready(function() {
+        initApp();
+        populateParamSelector();
+    });
+
+    function initApp() {
+        $.ajax({
+            url: `${GOOGLE_SCRIPT_URL}?action=getDashboardState&_=${new Date().getTime()}`,
+            dataType: 'json',
+            success: function(res) {
+                if(res.success && res.sheets.length > 0) {
+                    populateSheetSelector(res.sheets);
+                    latestSheetName = res.sheets[0];
+                    loadChartData(res.sheets[0]);
+                } else {
+                    $('#chart-container').html('<div class="loading-msg">No data found.</div>');
+                }
+            },
+            error: function(e) { $('#chart-container').html('<div class="loading-msg">Connection Failed.</div>'); }
+        });
+    }
+
+    function populateSheetSelector(sheets) {
+        var menu = document.getElementById("Channel Select");
+        menu.innerHTML = "";
+        sheets.forEach(function(s) {
+            var option = document.createElement("option");
+            option.value = s;
+            option.text = s;
+            menu.appendChild(option);
+        });
+        menu.onchange = function() { loadChartData(this.value); };
+    }
+    
+    function populateParamSelector() {
+        var menu = document.getElementById("ParamSelector");
+        menu.innerHTML = "<option value='all'>Show All</option>";
+        seriesConfig.forEach(function(s, index) {
+            var option = document.createElement("option");
+            option.value = index;
+            option.text = s.name;
+            menu.appendChild(option);
+        });
+    }
+
+    function loadChartData(sheetName) {
+        currentSheetName = sheetName;
+        $('#chart-container').html(`
+            <div class="loading-msg">
+                Loading Data...<br>
+                <img src="https://i.pinimg.com/originals/58/4b/60/584b607f5c2ff075429dc0e7b8d142ef.gif">
+            </div>
+        `);
+
+        if(dynamicChart) { dynamicChart.destroy(); dynamicChart = null; }
+        allData = [];
+
+        $.ajax({
+            url: `${GOOGLE_SCRIPT_URL}?action=getMonthData&sheet=${encodeURIComponent(sheetName)}&_=${new Date().getTime()}`,
+            dataType: 'json',
+            success: function(res) {
+                if (!res.success) { 
+                    $('#chart-container').html('<div class="loading-msg">Error loading data.</div>'); 
+                    return; 
+                }
+                
+                allData = res.data.map(d => {
+                    let clean = { ts: parseCustomDate(d.ts) };
+                    seriesConfig.forEach(s => { if(d[s.key] !== undefined) clean[s.key] = Number(d[s.key]); });
+                    return clean;
+                }).sort((a, b) => a.ts - b.ts);
+
+                if (allData.length > 0) lastDate = allData[allData.length - 1].ts;
+
+                createChart(allData);
+                startLiveSync();
+            },
+            error: function() { $('#chart-container').html('<div class="loading-msg">Load failed!</div>'); }
+        });
+    }
+
+    function createChart(data) {
+        var chartOptions = {
+            chart: { renderTo: 'chart-container', zoomType: 'x' },
+            rangeSelector: {
+                buttons: [
+                    { count: 1, type: 'hour', text: '1H' },
+                    { count: 6, type: 'hour', text: '6H' },
+                    { count: 12, type: 'hour', text: '12H' },
+                    { count: 1, type: 'day', text: '1D' },
+                    { count: 3, type: 'day', text: '3D' },
+                    { type: 'all', text: 'All' }
+                ],
+                inputEnabled: true, // Always enabled in desktop mode
+                selected: 3
+            },
+            
+            // REMOVED RESPONSIVE RULES TO FORCE DESKTOP LAYOUT
+
+            title: { text: '' },
+            plotOptions: {
+                series: {
+                    threshold: null,
+                    fillOpacity: 0.1, 
+                    lineWidth: 1.5,
+                    dataGrouping: { enabled: true },
+                    events: {
+                        legendItemClick: function () {
+                            var series = this;
+                            setTimeout(function() { updateYAxisLabel(series.chart); }, 100); 
+                        }
+                    }
+                }
+            },
+            exporting: { enabled: true, csv: { dateFormat: '%Y-%m-%d %H:%M:%S' } },
+            legend: { enabled: true },
+            yAxis: [{
+                title: { text: 'Data' }, 
+                lineWidth: 1,
+                lineColor: '#333333',
+                opposite: false
+            }],
+            series: []
+        };
+
+        seriesConfig.forEach(function(cfg) {
+             var seriesData = data.map(d => [d.ts, d[cfg.key]]);
+             chartOptions.series.push({
+                 name: cfg.name,
+                 data: seriesData,
+                 color: cfg.color,
+                 visible: cfg.visible,
+                 tooltip: { valueSuffix: ' ' + cfg.unit },
+                 customUnit: cfg.unit 
+             });
+        });
+
+        dynamicChart = new Highcharts.StockChart(chartOptions);
+        updateYAxisLabel(dynamicChart);
+    }
+    
+    function updateYAxisLabel(chart) {
+        if(!chart) return;
+        var visibleSeries = chart.series.filter(s => s.visible && s.name !== 'Navigator');
+        var axis = chart.yAxis[0];
+        
+        if (visibleSeries.length === 1) {
+            var s = visibleSeries[0];
+            var unit = s.options.customUnit || '';
+            var title = s.name + (unit ? ' (' + unit + ')' : '');
+            axis.setTitle({ text: title, style: { color: s.color } });
+            
+            var dropdown = document.getElementById("ParamSelector");
+            var idx = seriesConfig.findIndex(c => c.name === s.name);
+            if(idx > -1) dropdown.value = idx;
+            
+        } else if (visibleSeries.length > 1) {
+            axis.setTitle({ text: 'Data', style: { color: '#bfbfbf' } });
+            document.getElementById("ParamSelector").value = 'all';
+        } else {
+            axis.setTitle({ text: 'No Data', style: { color: '#bfbfbf' } });
+        }
+    }
+
+    function HideAll() {
+        if(!dynamicChart) return;
+        for (var i = 0; i < dynamicChart.series.length; i++) {
+            if (dynamicChart.series[i].name == 'Navigator') continue;
+            dynamicChart.series[i].hide();
+        }
+        updateYAxisLabel(dynamicChart);
+    }
+
+    function selectSingleParameter(indexStr) {
+        if(!dynamicChart) return;
+        if(indexStr === 'all') {
+            for (var i = 0; i < dynamicChart.series.length; i++) {
+                if (dynamicChart.series[i].name == 'Navigator') continue;
+                dynamicChart.series[i].show();
+            }
+        } else {
+            var targetIndex = parseInt(indexStr);
+            var targetName = seriesConfig[targetIndex].name;
+            for (var i = 0; i < dynamicChart.series.length; i++) {
+                var s = dynamicChart.series[i];
+                if (s.name == 'Navigator') continue;
+                if (s.name === targetName) s.show(); else s.hide();
+            }
+        }
+        updateYAxisLabel(dynamicChart);
+    }
+
+    function startLiveSync() {
+        if (liveSyncInterval) clearInterval(liveSyncInterval);
+        liveSyncInterval = setInterval(function() {
+            if (document.getElementById("Update").checked && currentSheetName === latestSheetName) {
+                 $.getJSON(`${GOOGLE_SCRIPT_URL}?action=getDashboardState&_=${new Date().getTime()}`, function(res) {
+                    if(res.success && res.latest) {
+                        var l = res.latest;
+                        var serverTs = parseCustomDate(l.ts);
+                        if (serverTs > lastDate) {
+                            lastDate = serverTs;
+                            var pt = { ts: serverTs, temp: l.temp, vol: l.vol, cur: l.cur, pow: l.pow, freq: l.freq, pf: l.pf, eng: l.monthEng, cost: l.monthCost };
+                            seriesConfig.forEach((cfg, idx) => {
+                                var s = dynamicChart.series.find(ser => ser.name === cfg.name);
+                                if(s) { s.addPoint([pt.ts, pt[cfg.key]], true, false); }
+                            });
+                        }
+                    }
+                 });
+            }
+        }, 15000); 
+    }
+
+    function parseCustomDate(input) {
+        let timestamp;
+        if (typeof input === 'number') {
+            timestamp = input;
+        } else if (typeof input === 'string') {
+            const parts = input.split(/[-/:\s]/); 
+            if(parts.length >= 6) {
+                timestamp = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4], parts[5]).getTime();
+            } else { timestamp = new Date().getTime(); }
+        } else { timestamp = new Date().getTime(); }
+        return timestamp + 3600000; 
+    }
+
+  </script>
+  </head>
+  <body>
+    <!-- Back Button -->
+    <a href="index.html" id="back-btn"><i class="fa-solid fa-arrow-left"></i> Home</a>
+
+    <div id="chart-container">
+        <!-- Initial Loading View -->
+      <div class="loading-msg">
+          WaliTech | SmartHomeMetrics<br>
+          Initializing...<br>
+          <img src="https://i.pinimg.com/originals/58/4b/60/584b607f5c2ff075429dc0e7b8d142ef.gif">
+      </div>
+    </div>
+    
+    <div id="below-chart"> 
+	
+        <div class="control-group">
+            <label>DISPLAY</label>
+            <button id="buttonSSS" value="Hide All" onclick="HideAll();">Hide All</button>
+        </div>
+		
+        <div class="control-group">
+            <label>SHEET</label>
+            <select class="buttt" id="Channel Select"></select>
+        </div>
+
+        <div class="control-group">
+            <label>PARAMETER</label>
+            <select class="buttt" id="ParamSelector" onchange="selectSingleParameter(this.value)"></select>
+        </div>
+        
+        <div class="control-group">
+            <label>ACTION</label>
+            <button id="buttonLoad" onclick="loadChartData(currentSheetName);">RELOAD</button>
+        </div>
+	  
+        <div style="display:flex; align-items:center; margin-left:10px;">
+          <input id="Update" name="Update" type="checkbox" checked>
+          <span style="font-family: Lucida Grande; font-size: 13px; margin-left:3px; color:#bfbfbf;">Live Sync</span> 
+        </div>
+
+    </div>
+  </body>
+</html>
