@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>WaliTech HomeMetrics Pro</title>
 
-  <!-- 1. INSERTED: Theme Detection Script (Must be first to prevent flash) -->
+  <!-- Theme Detection -->
   <script>
     (function() {
         const savedTheme = localStorage.getItem('theme');
-        // If saved is 'dark', or if no save but system prefers dark
         if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
@@ -18,7 +17,7 @@
     })();
   </script>
 
-  <!-- Tailwind CSS & Dark Mode -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -31,43 +30,77 @@
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
+    body { font-family: 'Inter', sans-serif; padding-top: env(safe-area-inset-top); }
+    
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    
     .sidebar-link { display: flex; align-items: center; padding: 12px 16px; border-radius: 8px; transition: all 0.2s; cursor: pointer; margin-bottom: 4px; font-weight: 500; }
     .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
     .dark .sidebar-link:hover { background-color: #334155; color: #f1f5f9; }
     .sidebar-link.active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }
+    
     .card { border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); position: relative; transition: background-color 0.3s; }
+    
+    /* Fullscreen Card Logic */
+    .fullscreen-card {
+        position: fixed !important; top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 100; border-radius: 0 !important; margin: 0 !important;
+        height: 100vh !important; width: 100vw !important; display: flex; flex-direction: column;
+    }
+    .fullscreen-card .overflow-x-auto { height: auto !important; flex: 1; }
+
     .status-badge { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 9999px; font-weight: 700; font-size: 0.75rem; }
     .status-on { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
     .status-off { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
     .blink { animation: pulse 2s infinite; }
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    
     .mobile-menu-closed { transform: translateX(-100%); }
     .mobile-menu-open { transform: translateX(0); }
-    .data-table th { padding: 10px; font-size: 0.75rem; text-transform: uppercase; text-align: left; }
+    
+    /* UPDATED: Removed 'text-align: left' to allow JS to control alignment */
+    .data-table th { padding: 10px; font-size: 0.75rem; text-transform: uppercase; position: sticky; top: 0; background: inherit; z-index: 10; }
     .data-table td { padding: 10px; border-bottom-width: 1px; font-size: 0.85rem; }
+    
     .zoom-btn { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; border-width: 1px; }
     .zoom-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+    
     .stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
     .stat-val { font-size: 1.25rem; font-weight: 800; }
     .stat-unit { font-size: 0.75rem; font-weight: 600; margin-left: 2px; }
-    .sidebar-collapsed { width: 0; opacity: 0; overflow: hidden; }
-    .sidebar-expanded { width: 280px; opacity: 1; }
     .touch-action-none { touch-action: none; }
+    
+    .info-icon { color: #94a3b8; cursor: pointer; transition: 0.2s; margin-left: 8px; font-size: 0.9rem; }
+    .info-icon:hover { color: #3b82f6; }
+
     @media (max-width: 768px) {
       .card { padding: 12px; }
       .stat-val { font-size: 1.1rem; }
       .chart-container { height: 250px !important; }
       #page-dashboard .grid-cols-5 { grid-template-columns: repeat(2, 1fr); }
-      .header-content { margin-left: 56px; } /* Space for the menu button */
     }
   </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-800 bg-slate-50 dark:bg-slate-900 dark:text-slate-200 transition-colors duration-300">
+
+  <!-- INFO MODAL -->
+  <div id="info-modal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-sm w-full p-6 relative border border-slate-200 dark:border-slate-700">
+          <button onclick="closeInfo()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+              <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+          <div class="flex items-center gap-3 mb-4">
+              <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-600 dark:text-blue-400">
+                  <i id="info-icon-display" class="fa-solid fa-circle-info text-xl"></i>
+              </div>
+              <h3 id="info-title" class="text-lg font-bold text-slate-800 dark:text-white">Info</h3>
+          </div>
+          <div id="info-content" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed space-y-2"></div>
+      </div>
+  </div>
 
   <script>
     // *** PASTE GOOGLE SCRIPT URL HERE ***
@@ -150,22 +183,12 @@
   </aside>
 
   <main id="main-content" class="flex-1 flex flex-col min-w-0 relative bg-slate-50 dark:bg-slate-900 transition-colors duration-300 overflow-auto touch-action-none">
-    <!-- Mobile Menu Toggle Button (Now inside header) -->
-    <button
-      id="mobile-menu-toggle"
-      onclick="toggleMobileMenu()"
-      class="md:hidden fixed top-3 left-3 z-40 
-            bg-blue-10 text-black 
-            p-2 rounded-md 
-            shadow-sm hover:shadow 
-            transition"
-    >
-      <i class="fa-solid fa-bars text-sm"></i>
-    </button>
-
-
-    <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 md:px-4 pl-16 md:pl-4 z-10 transition-colors duration-300">
-      <div class="flex items-center header-content">
+    
+    <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 z-10 transition-colors duration-300">
+      <div class="flex items-center gap-3">
+        <button id="mobile-menu-toggle" onclick="toggleMobileMenu()" class="md:hidden text-slate-500 hover:text-blue-600 transition p-1">
+          <i class="fa-solid fa-bars text-xl"></i>
+        </button>
         <h1 class="text-lg font-bold text-slate-800 dark:text-white" id="page-title">Dashboard</h1>
       </div>
       <div class="flex items-center gap-3">
@@ -185,7 +208,6 @@
           <div class="text-left md:text-right"><div class="text-xs font-bold text-slate-400 uppercase">Last Data</div><div id="last-updated-main" class="text-sm font-mono font-bold text-blue-600 dark:text-blue-400">--</div></div>
         </div>
 
-        <!-- Budget & Eco Row (Fixed) -->
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 mb-4 md:mb-6">
           <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700">
             <div class="flex justify-between items-center mb-2"><h3 class="font-bold text-slate-700 dark:text-slate-200">Monthly Budget</h3><span class="text-xs font-bold text-slate-400" id="budget-text">0% Used</span></div>
@@ -193,7 +215,15 @@
             <div class="flex justify-between mt-2 text-xs"><span id="curr-spend" class="font-bold text-slate-600 dark:text-slate-400">₦0</span><span class="text-slate-400">Target: ₦<span id="budget-target-display">50,000</span></span></div>
           </div>
           <div class="card bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 flex items-center justify-between">
-            <div><div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">Carbon Footprint</div><div class="text-xl md:text-2xl font-bold text-emerald-800 dark:text-emerald-200"><span id="co2-val">0</span> <span class="text-sm">kg</span></div><div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1"><i class="fa-solid fa-tree"></i> Offset by <span id="tree-val">0</span> trees</div></div><i class="fa-solid fa-leaf text-3xl md:text-4xl text-emerald-200 dark:text-emerald-800"></i>
+            <div>
+                <div class="flex items-center gap-1">
+                    <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">Carbon Footprint</div>
+                    <i class="fa-solid fa-circle-info info-icon" onclick="showInfo('carbon')"></i>
+                </div>
+                <div class="text-xl md:text-2xl font-bold text-emerald-800 dark:text-emerald-200"><span id="co2-val">0</span> <span class="text-sm">kg</span></div>
+                <div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1"><i class="fa-solid fa-tree"></i> Offset by <span id="tree-val">0</span> trees</div>
+            </div>
+            <i class="fa-solid fa-leaf text-3xl md:text-4xl text-emerald-200 dark:text-emerald-800"></i>
           </div>
         </div>
         
@@ -202,7 +232,15 @@
           <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700 border-l-4 border-l-purple-500"><div class="stat-label text-slate-400">Current</div><div class="stat-val text-slate-800 dark:text-white"><span id="d-cur">0</span><span class="stat-unit text-slate-500">A</span></div></div>
           <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700 border-l-4 border-l-orange-500"><div class="stat-label text-slate-400">Power</div><div class="stat-val text-slate-800 dark:text-white"><span id="d-pow">0</span><span class="stat-unit text-slate-500">W</span></div></div>
           <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700 border-l-4 border-l-teal-500"><div class="stat-label text-slate-400">Freq</div><div class="stat-val text-slate-800 dark:text-white"><span id="d-freq">0</span><span class="stat-unit text-slate-500">Hz</span></div></div>
-          <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700 border-l-4 border-l-indigo-500"><div class="stat-label text-slate-400">PF</div><div class="stat-val text-slate-800 dark:text-white"><span id="d-pf">0.00</span></div></div>
+          
+          <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700 border-l-4 border-l-indigo-500">
+              <div class="flex items-center justify-between">
+                  <div class="stat-label text-slate-400">PF</div>
+                  <i class="fa-solid fa-circle-info text-xs text-slate-400 cursor-pointer hover:text-blue-500" onclick="showInfo('pf')"></i>
+              </div>
+              <div class="stat-val text-slate-800 dark:text-white"><span id="d-pf">0.00</span></div>
+          </div>
+
           <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700 border-l-4 border-l-yellow-500"><div class="stat-label text-slate-400">Month Energy</div><div class="stat-val text-slate-800 dark:text-white"><span id="d-m-eng">0</span><span class="stat-unit text-slate-500">kWh</span></div></div>
           <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700 border-l-4 border-l-green-500"><div class="stat-label text-slate-400">Month Cost</div><div class="stat-val text-green-600 dark:text-green-400" id="d-m-cost">₦0.00</div></div>
           <div class="card border-l-4 border-slate-600 bg-slate-800 dark:bg-slate-700 text-white col-span-2 md:col-span-1 lg:col-span-1"><div class="stat-label text-slate-400">Projected Bill</div><div class="stat-val text-white" id="d-pred-cost">...</div><div class="text-xs text-slate-400 mt-1" id="d-pred-desc">Calculating...</div></div>
@@ -213,11 +251,16 @@
 
       <!-- 3. ANALYSIS -->
       <div id="page-analysis" class="hidden space-y-4 md:space-y-6">
-        <div class="flex justify-between items-center flex-col md:flex-row gap-2"><h2 class="text-xl font-bold text-slate-800 dark:text-white">Smart Analysis</h2><button onclick="exportCSV('analysis')" class="zoom-btn bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600"><i class="fa-solid fa-download mr-1"></i> Export</button></div>
+        <div class="flex justify-between items-center flex-col md:flex-row gap-2"><h2 class="text-xl font-bold text-slate-800 dark:text-white">Smart Analysis</h2></div>
         
-        <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700"><h3 class="font-bold text-slate-700 dark:text-slate-200 mb-4">Power Usage Intensity (Heatmap)</h3><div id="chart-heatmap" class="chart-container h-64 md:h-80"></div></div>
+        <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700">
+            <div class="flex items-center gap-2 mb-4">
+                <h3 class="font-bold text-slate-700 dark:text-slate-200">Power Usage Intensity (Heatmap)</h3>
+                <i class="fa-solid fa-circle-info info-icon" onclick="showInfo('heatmap')"></i>
+            </div>
+            <div id="chart-heatmap" class="chart-container h-64 md:h-80"></div>
+        </div>
 
-        <!-- RESTORED: Weekly Breakdown -->
         <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700">
            <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-4">Weekly Breakdown</h3>
            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
@@ -226,7 +269,13 @@
            </div>
         </div>
 
-        <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700"><h3 class="font-bold text-slate-700 dark:text-slate-200 mb-4 border-b dark:border-slate-700 pb-2">Grid Reliability (Month)</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-center"><div class="col-span-1 flex justify-center"><div id="chart-grid-donut" class="chart-container"></div></div><div class="col-span-2 grid grid-cols-2 gap-4"><div class="bg-green-50 dark:bg-green-900/30 p-4 rounded border border-green-100 dark:border-green-800"><div class="text-xs font-bold text-green-700 dark:text-green-400 uppercase">On-Grid</div><div id="grid-on-txt" class="text-xl font-bold text-green-700 dark:text-green-400">--</div></div><div class="bg-red-50 dark:bg-red-900/30 p-4 rounded border border-red-100 dark:border-red-800"><div class="text-xs font-bold text-red-700 dark:text-red-400 uppercase">Off-Grid</div><div id="grid-off-txt" class="text-xl font-bold text-red-700 dark:text-red-400">--</div></div></div></div></div>
+        <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700">
+            <div class="flex items-center gap-2 mb-4 border-b dark:border-slate-700 pb-2">
+                <h3 class="font-bold text-slate-700 dark:text-slate-200">Grid Reliability (Month)</h3>
+                <i class="fa-solid fa-circle-info info-icon" onclick="showInfo('grid')"></i>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-center"><div class="col-span-1 flex justify-center"><div id="chart-grid-donut" class="chart-container"></div></div><div class="col-span-2 grid grid-cols-2 gap-4"><div class="bg-green-50 dark:bg-green-900/30 p-4 rounded border border-green-100 dark:border-green-800"><div class="text-xs font-bold text-green-700 dark:text-green-400 uppercase">On-Grid</div><div id="grid-on-txt" class="text-xl font-bold text-green-700 dark:text-green-400">--</div></div><div class="bg-red-50 dark:bg-red-900/30 p-4 rounded border border-red-100 dark:border-red-800"><div class="text-xs font-bold text-red-700 dark:text-red-400 uppercase">Off-Grid</div><div id="grid-off-txt" class="text-xl font-bold text-red-700 dark:text-red-400">--</div></div></div></div>
+        </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700"><h3 class="font-bold text-slate-700 dark:text-slate-200 mb-2">Last 24h Peaks</h3><div class="overflow-x-auto"><table class="w-full data-table text-slate-700 dark:text-slate-300"><thead class="bg-slate-100 dark:bg-slate-700"><tr><th>Param</th><th>High</th><th>Time</th><th>Low</th><th>Time</th></tr></thead><tbody id="table-24h" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody></table></div></div>
@@ -255,7 +304,6 @@
                <div><label class="text-xs font-bold text-slate-500">Max Power</label><input id="set-pow" type="number" class="w-full border p-2 rounded mt-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white text-sm"></div>
                <div><label class="text-xs font-bold text-slate-500">Max Temp</label><input id="set-temp" type="number" class="w-full border p-2 rounded mt-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white text-sm"></div>
                
-               <!-- NEW: BUDGET INPUT -->
                <div class="md:col-span-4 border-t pt-4 dark:border-slate-600">
                   <label class="text-xs font-bold text-slate-500">Monthly Budget Target (₦)</label>
                   <input id="set-budget" type="number" class="w-full md:w-1/3 border p-2 rounded mt-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white text-sm" placeholder="50000">
@@ -264,13 +312,108 @@
             </div>
             <button onclick="saveSettings()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700 w-full md:w-auto">Save System Settings</button>
          </div>
-         <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700"><div class="flex justify-between items-center mb-4"><h3 class="font-bold text-slate-700 dark:text-slate-200">Alert History</h3><button onclick="loadAlerts()" class="text-blue-600"><i class="fa-solid fa-rotate"></i></button></div><div class="overflow-x-auto h-64 md:h-96"><table class="w-full text-sm text-left data-table text-slate-700 dark:text-slate-300"><thead class="bg-slate-100 dark:bg-slate-700"><tr><th>Time</th><th>Type</th><th>Value</th><th>Message</th></tr></thead><tbody id="alert-table-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody></table></div></div>
+         
+         <!-- ALERT HISTORY CARD WITH FULLSCREEN BUTTON -->
+         <div id="alert-card" class="card bg-white dark:bg-slate-800 border dark:border-slate-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-700 dark:text-slate-200">Alert History</h3>
+                <div>
+                    <button onclick="toggleAlertsFullscreen()" class="text-slate-500 hover:text-blue-600 mr-3" title="Toggle Fullscreen">
+                        <i id="alert-expand-icon" class="fa-solid fa-expand text-lg"></i>
+                    </button>
+                    <button onclick="loadAlerts()" class="text-blue-600" title="Refresh">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto h-64 md:h-96">
+                <table class="w-full text-sm text-left data-table text-slate-700 dark:text-slate-300">
+                    <thead class="bg-slate-100 dark:bg-slate-700">
+                        <tr>
+                            <th class="bg-slate-100 dark:bg-slate-700">Time</th>
+                            <th class="bg-slate-100 dark:bg-slate-700">Type</th>
+                            <th class="bg-slate-100 dark:bg-slate-700">Value</th>
+                            <th class="bg-slate-100 dark:bg-slate-700">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alert-table-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+                </table>
+            </div>
+         </div>
+         
       </div>
 
     </div>
   </main>
 
   <script>
+    // --- INFO MODAL DATA ---
+    const infoData = {
+        heatmap: {
+            title: "How to read the Heatmap",
+            icon: "fa-fire",
+            content: `
+                <p>This chart visualizes your energy habits over the week.</p>
+                <ul class="list-disc pl-4 space-y-1 mt-2">
+                    <li><strong>Rows:</strong> Days of the week (Sun-Sat).</li>
+                    <li><strong>Columns:</strong> Hours of the day (00:00 - 23:00).</li>
+                    <li><span class="text-green-500 font-bold">Green:</span> Low usage (e.g., Standby).</li>
+                    <li><span class="text-yellow-500 font-bold">Yellow:</span> Medium usage (e.g., TV/Lights).</li>
+                    <li><span class="text-red-500 font-bold">Red:</span> High usage (e.g., AC/Heater/Iron).</li>
+                </ul>
+                <p class="mt-2 text-xs italic">Use this to identify which appliances are running at specific times.</p>
+            `
+        },
+        carbon: {
+            title: "Carbon Footprint",
+            icon: "fa-leaf",
+            content: `
+                <p>An estimate of the CO₂ emissions generated by your electricity usage.</p>
+                <p class="mt-2"><strong>Formula:</strong> <code>kWh × 0.43 kgCO₂</code></p>
+                <p class="mt-2">This factor represents the average grid emission intensity. Offset shows how many trees would be needed to absorb this amount of carbon in a year.</p>
+            `
+        },
+        pf: {
+            title: "Power Factor (PF)",
+            icon: "fa-bolt",
+            content: `
+                <p>A measure of how efficiently your appliances convert electricity into useful work.</p>
+                <ul class="list-disc pl-4 space-y-1 mt-2">
+                    <li><strong>1.00:</strong> Perfect efficiency (Pure resistive load).</li>
+                    <li><strong>0.85 - 0.99:</strong> Good efficiency.</li>
+                    <li><strong>Below 0.80:</strong> Poor efficiency (Inductive loads like motors/old fans without capacitors).</li>
+                </ul>
+                <p class="mt-2 text-xs text-red-500">Low PF draws more current for the same power!</p>
+            `
+        },
+        grid: {
+            title: "Grid Reliability",
+            icon: "fa-tower-cell",
+            content: `
+                <p>Tracks the availability of power supply for the current month.</p>
+                <ul class="list-disc pl-4 space-y-1 mt-2">
+                    <li><strong>On-Grid:</strong> Total hours power was available.</li>
+                    <li><strong>Off-Grid:</strong> Total hours of blackout/outage.</li>
+                </ul>
+                <p class="mt-2 text-xs">Calculated by detecting gaps in the data stream > 10 minutes.</p>
+            `
+        }
+    };
+
+    function showInfo(key) {
+        const data = infoData[key];
+        if(!data) return;
+        document.getElementById('info-title').innerText = data.title;
+        document.getElementById('info-content').innerHTML = data.content;
+        document.getElementById('info-icon-display').className = `fa-solid ${data.icon} text-xl`;
+        document.getElementById('info-modal').classList.remove('hidden');
+    }
+
+    function closeInfo() {
+        document.getElementById('info-modal').classList.add('hidden');
+    }
+
+    // --- MAIN LOGIC ---
     let chartInst = {};
     let globalData = []; 
     let currentZoomHours = 24;
@@ -280,20 +423,15 @@
     let touchEndX = 0;
 
     window.onload = function() {
-      // 2. MODIFIED: Removed duplicate theme check from here
-      // if(localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
-      
       refreshData();
       setInterval(refreshData, 30000); 
       loadSettings();
       setupTouchGestures();
       setupAutoHideMenu();
       
-      // Hide mobile menu toggle when sidebar is open
       const sidebar = document.getElementById('sidebar');
       const toggleBtn = document.getElementById('mobile-menu-toggle');
       
-      // Observe sidebar class changes
       const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
           if (mutation.attributeName === 'class') {
@@ -305,78 +443,44 @@
           }
         });
       });
-      
       observer.observe(sidebar, { attributes: true });
     };
 
     function setupTouchGestures() {
       const mainContent = document.getElementById('main-content');
-      
-      mainContent.addEventListener('touchstart', function(e) {
-        touchStartX = e.changedTouches[0].screenX;
-      }, false);
-
-      mainContent.addEventListener('touchend', function(e) {
-        touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
-      }, false);
+      mainContent.addEventListener('touchstart', function(e) { touchStartX = e.changedTouches[0].screenX; }, false);
+      mainContent.addEventListener('touchend', function(e) { touchEndX = e.changedTouches[0].screenX; handleSwipe(); }, false);
     }
 
     function handleSwipe() {
       const swipeThreshold = 50;
       const diff = touchStartX - touchEndX;
-      
       if (Math.abs(diff) > swipeThreshold) {
         if (diff > 0) {
-          // Swipe left - hide menu
-          if (window.innerWidth < 768 && !document.getElementById('sidebar').classList.contains('mobile-menu-closed')) {
-            toggleMobileMenu();
-          }
+          if (window.innerWidth < 768 && !document.getElementById('sidebar').classList.contains('mobile-menu-closed')) { toggleMobileMenu(); }
         } else {
-          // Swipe right - show menu
-          if (window.innerWidth < 768 && document.getElementById('sidebar').classList.contains('mobile-menu-closed')) {
-            toggleMobileMenu();
-          }
+          if (window.innerWidth < 768 && document.getElementById('sidebar').classList.contains('mobile-menu-closed')) { toggleMobileMenu(); }
         }
       }
     }
 
     function setupAutoHideMenu() {
-      // Auto-hide menu on mobile after 5 seconds of inactivity
       const sidebar = document.getElementById('sidebar');
       const mainContent = document.getElementById('main-content');
-      
       if (window.innerWidth < 768) {
         mainContent.addEventListener('click', function() {
           if (!sidebar.classList.contains('mobile-menu-closed')) {
             clearTimeout(mobileMenuTimeout);
-            mobileMenuTimeout = setTimeout(() => {
-              if (!sidebar.classList.contains('mobile-menu-closed')) {
-                toggleMobileMenu();
-              }
-            }, 5000); // Hide after 5 seconds
+            mobileMenuTimeout = setTimeout(() => { if (!sidebar.classList.contains('mobile-menu-closed')) { toggleMobileMenu(); } }, 5000);
           }
         });
-        
-        sidebar.addEventListener('mouseenter', function() {
-          clearTimeout(mobileMenuTimeout);
-        });
-        
-        sidebar.addEventListener('mouseleave', function() {
-          if (!sidebar.classList.contains('mobile-menu-closed')) {
-            mobileMenuTimeout = setTimeout(() => {
-              if (!sidebar.classList.contains('mobile-menu-closed')) {
-                toggleMobileMenu();
-              }
-            }, 3000);
-          }
-        });
+        sidebar.addEventListener('mouseenter', function() { clearTimeout(mobileMenuTimeout); });
+        sidebar.addEventListener('mouseleave', function() { if (!sidebar.classList.contains('mobile-menu-closed')) { mobileMenuTimeout = setTimeout(() => { if (!sidebar.classList.contains('mobile-menu-closed')) { toggleMobileMenu(); } }, 3000); } });
       }
     }
 
     function toggleTheme() {
        const html = document.documentElement;
-       // Updated logic for toggling that respects the same localStorage key
        if(html.classList.contains('dark')) { 
            html.classList.remove('dark'); 
            localStorage.setItem('theme', 'light'); 
@@ -394,20 +498,32 @@
       const sidebar = document.getElementById('sidebar');
       const overlay = document.getElementById('mobile-overlay');
       const toggleBtn = document.getElementById('mobile-menu-toggle');
-      
       sidebar.classList.toggle('mobile-menu-closed');
       sidebar.classList.toggle('mobile-menu-open');
       overlay.classList.toggle('hidden');
-      
-      // Reset auto-hide timer when menu is toggled
       if (!sidebar.classList.contains('mobile-menu-closed')) {
         clearTimeout(mobileMenuTimeout);
-        mobileMenuTimeout = setTimeout(() => {
-          if (!sidebar.classList.contains('mobile-menu-closed')) {
-            toggleMobileMenu();
-          }
-        }, 5000);
+        mobileMenuTimeout = setTimeout(() => { if (!sidebar.classList.contains('mobile-menu-closed')) { toggleMobileMenu(); } }, 5000);
       }
+    }
+
+    // Toggle Alerts Fullscreen Logic
+    function toggleAlertsFullscreen() {
+        const card = document.getElementById('alert-card');
+        const icon = document.getElementById('alert-expand-icon');
+        const body = document.body;
+
+        card.classList.toggle('fullscreen-card');
+
+        if (card.classList.contains('fullscreen-card')) {
+            icon.classList.remove('fa-expand');
+            icon.classList.add('fa-compress');
+            body.style.overflow = 'hidden';
+        } else {
+            icon.classList.remove('fa-compress');
+            icon.classList.add('fa-expand');
+            body.style.overflow = 'auto';
+        }
     }
 
     function refreshData() { google.script.run.withSuccessHandler(updateState).getDashboardState(); }
@@ -454,12 +570,10 @@
             let spend = l.monthCost;
             let percent = (spend / monthlyBudget) * 100;
             if(percent > 100) percent = 100;
-            
             document.getElementById('budget-bar').style.width = percent + "%";
             document.getElementById('budget-text').innerText = percent.toFixed(1) + "% Used";
             document.getElementById('budget-target-display').innerText = monthlyBudget.toLocaleString();
             document.getElementById('curr-spend').innerText = fmt.format(spend);
-            
             let bar = document.getElementById('budget-bar');
             if(percent < 50) bar.className = "bg-green-500 h-4 rounded-full transition-all duration-500";
             else if(percent < 85) bar.className = "bg-yellow-500 h-4 rounded-full transition-all duration-500";
@@ -481,7 +595,6 @@
     function toggleChartsMenu() {
       const menu = document.getElementById('charts-submenu');
       const arrow = document.getElementById('charts-arrow');
-      
       if (menu.classList.contains('hidden')) {
         menu.classList.remove('hidden');
         menu.classList.add('flex');
@@ -494,12 +607,9 @@
     }
 
     function showPage(p) {
-      // Close mobile menu when clicking a link (on mobile)
       if (window.innerWidth < 768) {
         const sidebar = document.getElementById('sidebar');
-        if (!sidebar.classList.contains('mobile-menu-closed')) {
-          toggleMobileMenu();
-        }
+        if (!sidebar.classList.contains('mobile-menu-closed')) { toggleMobileMenu(); }
       }
       
       ['dashboard', 'analysis', 'yearly', 'alerts'].forEach(x => {
@@ -646,75 +756,39 @@
       globalData = data; 
       let years = [...new Set(data.map(d => d.year))].sort();
       let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      
-      let pivotC = {}, pivotE = {};
-      let totals = {};
-
-      const palette = [
-        '#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', 
-        '#db2777', '#0891b2', '#4d7c0f', '#4f46e5', '#ea580c', 
-        '#0d9488', '#c026d3', '#e11d48', '#059669', '#ca8a04', 
-        '#475569', '#9333ea', '#0284c7', '#be123c', '#57534e'
-      ];
-
-      years.forEach(y => { 
-          pivotC[y] = new Array(12).fill(0); 
-          pivotE[y] = new Array(12).fill(0); 
-          totals[y] = { cost: 0, eng: 0 }; 
-      });
-
-      data.forEach(d => { 
-          pivotC[d.year][d.monthIdx] = d.cost; 
-          pivotE[d.year][d.monthIdx] = d.energy;
-          totals[d.year].cost += d.cost;
-          totals[d.year].eng += d.energy;
-      });
-
+      let pivotC = {}, pivotE = {}, totals = {};
+      const palette = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#4d7c0f', '#4f46e5', '#ea580c', '#0d9488', '#c026d3', '#e11d48', '#059669', '#ca8a04', '#475569', '#9333ea', '#0284c7', '#be123c', '#57534e'];
+      years.forEach(y => { pivotC[y] = new Array(12).fill(0); pivotE[y] = new Array(12).fill(0); totals[y] = { cost: 0, eng: 0 }; });
+      data.forEach(d => { pivotC[d.year][d.monthIdx] = d.cost; pivotE[d.year][d.monthIdx] = d.energy; totals[d.year].cost += d.cost; totals[d.year].eng += d.energy; });
       const isDark = document.documentElement.classList.contains('dark');
       const textColor = isDark ? '#cbd5e1' : '#374151';
-
       let seriesCost = years.map(y => ({ name: y.toString(), data: pivotC[y] }));
       let seriesEng = years.map(y => ({ name: y.toString(), data: pivotE[y] }));
-      
       let activeColors = years.map((_, i) => palette[i % palette.length]);
-
       renderBarGroup('chart-yr-cost', seriesCost, months, false, textColor, activeColors);
       renderBarGroup('chart-yr-eng', seriesEng, months, true, textColor, activeColors);
-
-      let thead = `<thead class="bg-slate-50 dark:bg-slate-700 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400"><tr><th class="px-6 py-3 text-left tracking-wider">Month</th>`;
-      years.forEach((y, i) => {
-          let color = activeColors[i];
-          thead += `<th class="px-6 py-3 text-right tracking-wider" style="color:${color}">${y} Cost</th><th class="px-6 py-3 text-right tracking-wider" style="color:${color}">${y} kWh</th>`;
-      });
+      let thead = `<thead class="bg-slate-50 dark:bg-slate-700 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400"><tr><th class="px-6 py-3 text-left tracking-wider sticky top-0 bg-inherit z-10" style="text-align: left;">Month</th>`;
+      years.forEach((y, i) => { let color = activeColors[i]; thead += `<th class="px-6 py-3 text-right tracking-wider sticky top-0 bg-inherit z-10" style="color:${color}; text-align: right;">${y} Cost</th><th class="px-6 py-3 text-right tracking-wider sticky top-0 bg-inherit z-10" style="color:${color}; text-align: right;">${y} kWh</th>`; });
       thead += `</tr></thead>`;
       document.getElementById('yearly-table-head').innerHTML = thead;
-      
       let tbody = "";
       months.forEach((m, i) => {
-         let row = `<tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"><td class="px-6 py-3 font-medium text-slate-700 dark:text-slate-200">${m}</td>`;
+         let row = `<tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"><td class="px-6 py-3 font-medium text-slate-700 dark:text-slate-200" style="text-align: left;">${m}</td>`;
          years.forEach(y => { 
-            let c = pivotC[y][i]; 
-            let e = pivotE[y][i];
-            
+            let c = pivotC[y][i]; let e = pivotE[y][i];
             let cStr = c > 0 ? '₦' + c.toLocaleString() : '-';
             let eStr = e > 0 ? e.toFixed(1) : '-';
-            
             let cClass = c > 0 ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600';
             let eClass = e > 0 ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600';
-
-            row += `<td class="px-6 py-3 text-right font-bold ${cClass}">${cStr}</td><td class="px-6 py-3 text-right font-bold ${eClass}">${eStr}</td>`; 
+            row += `<td class="px-6 py-3 text-right font-bold ${cClass}" style="text-align: right;">${cStr}</td><td class="px-6 py-3 text-right font-bold ${eClass}" style="text-align: right;">${eStr}</td>`; 
          });
          row += `</tr>`;
          tbody += row;
       });
-
-      let totalRow = `<tr class="bg-slate-200 dark:bg-slate-900 font-bold border-t-2 border-slate-300 dark:border-slate-600 text-sm"><td class="px-6 py-4 uppercase text-slate-800 dark:text-slate-300">TOTAL</td>`;
-      years.forEach(y => {
-          totalRow += `<td class="px-6 py-4 text-right text-slate-900 dark:text-slate-200 text-base">₦${totals[y].cost.toLocaleString()}</td><td class="px-6 py-4 text-right text-slate-900 dark:text-slate-200 text-base">${totals[y].eng.toFixed(1)} kWh</td>`;
-      });
+      let totalRow = `<tr class="bg-slate-200 dark:bg-slate-900 font-bold border-t-2 border-slate-300 dark:border-slate-600 text-sm"><td class="px-6 py-4 uppercase text-slate-800 dark:text-slate-300" style="text-align: left;">TOTAL</td>`;
+      years.forEach(y => { totalRow += `<td class="px-6 py-4 text-right text-slate-900 dark:text-slate-200 text-base" style="text-align: right;">₦${totals[y].cost.toLocaleString()}</td><td class="px-6 py-4 text-right text-slate-900 dark:text-slate-200 text-base" style="text-align: right;">${totals[y].eng.toFixed(1)} kWh</td>`; });
       totalRow += `</tr>`;
       tbody += totalRow;
-
       document.getElementById('yearly-table-body').innerHTML = tbody;
     }
 
