@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    
+    <!-- Force Desktop Viewport (1280px wide) -->
+    <meta name="viewport" content="width=1280, initial-scale=0.3, maximum-scale=3.0, user-scalable=yes">
+    
+    <meta name="theme-color" content="#0f172a">
+    <title>WaliTech | Historical Chart Pro</title>
+
+    <!-- 1. INSERTED: Theme Detection Script (Must be first) -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.add('light');
+            } else {
+                document.documentElement.classList.remove('light');
+            }
+        })();
+    </script>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* --- VARIABLES & LAYOUT --- */
+        :root { 
+            /* Dark Theme Defaults */
+            --bg: #0f172a; 
+            --panel: #1e293b; 
+            --border: #334155; 
+            --text: #e2e8f0; 
+            --text-muted: #94a3b8;
+            --accent: #2563eb; 
+            --input-bg: #0f172a;
+            --btn-bg: rgba(30, 41, 59, 0.9);
+        }
+
+        /* 2. INSERTED: Light Theme Overrides */
+        html.light {
+            --bg: #f8fafc;
+            --panel: #ffffff;
+            --border: #cbd5e1;
+            --text: #334155;
+            --text-muted: #64748b;
+            --input-bg: #f1f5f9;
+            --btn-bg: #e2e8f0;
+        }
+        
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'Segoe UI', sans-serif; 
+            margin: 0; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            min-width: 1280px;
+            overflow-x: auto; 
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* --- HEADER --- */
+        #header { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: var(--panel); border-bottom: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 20; transition: background 0.3s, border-color 0.3s; }
+        .brand { font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; color: var(--text); }
+        
+        .header-controls { display: flex; gap: 10px; align-items: center; }
+
+        select#sheetSelector { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); padding: 8px; border-radius: 6px; outline: none; transition: 0.3s; }
+
+        .theme-btn { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+        .theme-btn:hover { background: var(--border); }
+
+        /* --- CHART AREA --- */
+        #chart-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; }
+        #stats-bar { height: 50px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-around; font-size: 0.85rem; padding: 0 10px; overflow-x: auto; white-space: nowrap; transition: background 0.3s; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+        .stat-val { font-weight: 700; font-family: monospace; }
+        
+        #chart-container { flex: 1; position: relative; padding: 10px; min-height: 0; transition: background 0.3s; }
+        #main-chart { width: 100%; height: 100%; }
+
+        /* --- CONTROLS --- */
+        #controls { background: var(--panel); border-top: 1px solid var(--border); padding: 10px; z-index: 20; transition: background 0.3s; }
+        .toggle-group { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 8px; }
+        .param-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .param-btn:hover { background: var(--border); }
+        .param-btn.active { border-color: transparent; color: white !important; box-shadow: 0 0 10px rgba(0,0,0,0.3); transform: scale(1.05); }
+        .footer-tools { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); }
+
+        /* --- OVERLAYS --- */
+        .loading-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 50; backdrop-filter: blur(2px); }
+        html.light .loading-overlay { background: rgba(255, 255, 255, 0.9); }
+        html.light #loader-text { color: #334155 !important; }
+
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .status-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; pointer-events: none; color: var(--text-muted); }
+        
+        .zoom-buttons { position: absolute; top: 10px; right: 20px; display: flex; gap: 4px; z-index: 10; }
+        .zoom-btn { background: var(--btn-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .zoom-btn:hover { background: var(--border); }
+        .zoom-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        
+        /* Switch Toggle */
+        .switch-wrapper { display: flex; align-items: center; gap: 8px; color: var(--text); }
+        .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--border); transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(16px); }
+    </style>
+
+    <!-- Highcharts Configuration -->
+    <script>
+        // Default options are for Dark Mode, but will be overridden by updateChartTheme()
+        Highcharts.setOptions({
+            global: { useUTC: false }, 
+            lang: { thousandsSep: ',' },
+            colors: ['#3b82f6', '#a855f7', '#f97316', '#14b8a6', '#6366f1', '#ef4444', '#eab308', '#22c55e'],
+            chart: {
+                backgroundColor: 'transparent',
+                style: { fontFamily: "'Segoe UI', sans-serif" },
+                spacingLeft: 0,
+                spacingRight: 0
+            },
+            credits: { enabled: false },
+            tooltip: {
+                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                style: { color: '#f1f5f9' },
+                borderColor: '#334155',
+                borderRadius: 8,
+                shared: true,
+                useHTML: true,
+                xDateFormat: '%Y-%m-%d %H:%M:%S',
+                valueDecimals: 2
+            },
+            xAxis: {
+                gridLineColor: '#334155',
+                lineColor: '#334155',
+                tickColor: '#334155',
+                labels: { style: { color: '#94a3b8' } }
+            },
+            scrollbar: {
+                barBackgroundColor: '#334155',
+                trackBackgroundColor: '#1e293b',
+                trackBorderColor: '#334155'
+            },
+            navigator: {
+                enabled: true,
+                outlineColor: '#334155',
+                xAxis: { gridLineColor: '#334155' }
+            },
+            rangeSelector: { enabled: false }
+        });
+    </script>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxH13m5DXcyBH2BZ0qp1H3GovZCXEDRbjnD5yzj_KZL3O_MAGXG9PKu8dQdyDHhX0Vi_A/exec";
+        
+        // Increase this to widen axes gap
+        const Y_AXIS_SPACING = 80; 
+
+        var chart = null;
+        var currentSheetName = "";
+        var latestSheetName = "";
+        var allData = [];
+        var currentZoomHours = 24;
+        var isChartLoading = false;
+        var liveSyncInterval = null;
+        var lastDate = 0;
+
+        var seriesConfig = [
+            { id:0, name: 'Voltage', key: 'vol', unit: 'V',   color: '#3b82f6', visible: true,  icon: 'fa-bolt' },
+            { id:1, name: 'Current', key: 'cur', unit: 'A',   color: '#a855f7', visible: false, icon: 'fa-flux-capacitor' },
+            { id:2, name: 'Power',   key: 'pow', unit: 'W',   color: '#f97316', visible: false, icon: 'fa-plug' },
+            { id:3, name: 'Freq',    key: 'freq',unit: 'Hz',  color: '#14b8a6', visible: false, icon: 'fa-wave-square' },
+            { id:4, name: 'PF',      key: 'pf',  unit: '',    color: '#6366f1', visible: false, icon: 'fa-percent' },
+            { id:5, name: 'Temp',    key: 'temp',unit: '°C',  color: '#ef4444', visible: false, icon: 'fa-temperature-half' },
+            { id:6, name: 'Energy',  key: 'eng', unit: 'kWh', color: '#eab308', visible: false, icon: 'fa-battery-full' },
+            { id:7, name: 'Cost',    key: 'cost',unit: '₦',   color: '#22c55e', visible: false, icon: 'fa-coins' } 
+        ];
+
+        $(document).ready(function () { 
+            initApp(); 
+            // Initialize icon
+            const isLight = document.documentElement.classList.contains('light');
+            document.getElementById('theme-icon').className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        });
+
+        // 3. INSERTED: Theme Toggle Logic
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btnIcon = document.getElementById('theme-icon');
+            
+            if (html.classList.contains('light')) {
+                html.classList.remove('light');
+                localStorage.setItem('theme', 'dark');
+                btnIcon.className = 'fa-solid fa-sun';
+            } else {
+                html.classList.add('light');
+                localStorage.setItem('theme', 'light');
+                btnIcon.className = 'fa-solid fa-moon';
+            }
+            updateChartTheme();
+        }
+
+        // 4. INSERTED: Chart Theme Update Logic
+        function updateChartTheme() {
+            if(!chart) return;
+            
+            const isLight = document.documentElement.classList.contains('light');
+            
+            // Define colors
+            const c = {
+                text: isLight ? '#334155' : '#e2e8f0',
+                textMuted: isLight ? '#64748b' : '#94a3b8',
+                grid: isLight ? '#e2e8f0' : '#334155',
+                bg: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 41, 59, 0.95)',
+                border: isLight ? '#cbd5e1' : '#334155',
+                track: isLight ? 'rgba(128,128,128,0.05)' : '#1e293b'
+            };
+
+            chart.update({
+                chart: { style: { color: c.text } },
+                xAxis: {
+                    gridLineColor: c.grid,
+                    lineColor: c.grid,
+                    tickColor: c.grid,
+                    labels: { style: { color: c.textMuted } }
+                },
+                yAxis: chart.yAxis.map(() => ({
+                    gridLineColor: c.grid,
+                    lineColor: c.grid, // Note: We keep specific series colors for titles/labels logic in createChart
+                    tickColor: c.grid
+                })),
+                scrollbar: {
+                    barBackgroundColor: c.grid,
+                    trackBackgroundColor: c.track,
+                    trackBorderColor: c.grid
+                },
+                navigator: {
+                    outlineColor: c.grid,
+                    xAxis: { gridLineColor: c.grid, labels: { style: { color: c.textMuted } } }
+                },
+                tooltip: {
+                    backgroundColor: c.bg,
+                    style: { color: c.text },
+                    borderColor: c.border
+                }
+            });
+        }
+
+        function initApp() {
+            setLoading(true, "Connecting...");
+            renderButtons();
+            createZoomButtons();
+            
+            $.ajax({
+                url: `${GOOGLE_SCRIPT_URL}?action=getDashboardState&_=${new Date().getTime()}`,
+                dataType: 'json',
+                timeout: 30000, 
+                success: function(res) {
+                    if(res.success && res.sheets.length > 0) {
+                        populateSheetSelector(res.sheets);
+                        latestSheetName = res.sheets[0];
+                        loadChartData(res.sheets[0]);
+                    } else {
+                        showError("No data found.");
+                        setLoading(false);
+                    }
+                },
+                error: function(e) { showError("Connection Failed."); setLoading(false); }
+            });
+        }
+
+        function createZoomButtons() {
+            const container = document.createElement('div');
+            container.className = 'zoom-buttons';
+            const zooms = [
+                {h:1,l:'1H'}, {h:3,l:'3H'}, {h:6,l:'6H'}, {h:12,l:'12H'}, 
+                {h:24,l:'1D'}, {h:72,l:'3D'}, {h:168,l:'1W'}, {h:336,l:'2W'}, {h:744,l:'1M'}
+            ];
+            zooms.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = `zoom-btn ${opt.h === 24 ? 'active' : ''}`;
+                btn.textContent = opt.l;
+                btn.onclick = () => setZoom(opt.h, btn);
+                container.appendChild(btn);
+            });
+            document.getElementById('chart-container').appendChild(container);
+        }
+
+        function setZoom(hours, btn) {
+            currentZoomHours = hours;
+            document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            if (chart && allData.length > 0) {
+                const max = allData[allData.length - 1].ts;
+                const min = max - (hours * 3600 * 1000);
+                chart.xAxis[0].setExtremes(min, max);
+                updateStats(allData.filter(d => d.ts >= min && d.ts <= max));
+            }
+        }
+
+        function renderButtons() {
+            const container = document.getElementById('toggle-container');
+            container.innerHTML = '';
+            
+            const hideBtn = document.createElement('button');
+            hideBtn.className = 'param-btn';
+            hideBtn.style.borderColor = '#ef4444';
+            hideBtn.style.color = '#ef4444';
+            hideBtn.innerHTML = `<i class="fa-solid fa-eye-slash"></i> Hide All`;
+            hideBtn.onclick = hideAllSeries;
+            container.appendChild(hideBtn);
+
+            seriesConfig.forEach((s, idx) => {
+                const btn = document.createElement('button');
+                btn.id = `btn-${idx}`; 
+                btn.className = `param-btn ${s.visible ? 'active' : ''}`;
+                // Apply inline styles for active state so they override CSS
+                if(s.visible) {
+                    btn.style.backgroundColor = s.color;
+                    btn.style.borderColor = 'transparent';
+                    btn.style.color = 'white';
+                }
+                btn.innerHTML = `<i class="fa-solid ${s.icon}"></i> ${s.name}`;
+                btn.onclick = () => toggleSeries(idx, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function populateSheetSelector(sheets) {
+            const sel = document.getElementById('sheetSelector');
+            sel.innerHTML = "";
+            sheets.forEach(s => { let o = document.createElement('option'); o.value = s; o.text = s; sel.appendChild(o); });
+            sel.onchange = (e) => loadChartData(e.target.value);
+        }
+
+        function loadChartData(sheetName) {
+            if(isChartLoading) return;
+            isChartLoading = true;
+            currentSheetName = sheetName;
+            setLoading(true, `Loading ${sheetName}...`);
+            document.getElementById('no-data-message').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+
+            if(chart) { chart.destroy(); chart = null; }
+            allData = [];
+            lastDate = 0;
+
+            $.ajax({
+                url: `${GOOGLE_SCRIPT_URL}?action=getMonthData&sheet=${encodeURIComponent(sheetName)}&_=${new Date().getTime()}`,
+                dataType: 'json', timeout: 60000,
+                success: function(res) {
+                    try {
+                        if (!res.success) { showError(res.error); return; }
+                        if (!res.data || res.data.length === 0) {
+                            document.getElementById('no-data-message').style.display = 'block';
+                            return;
+                        }
+                        
+                        allData = res.data.map(d => {
+                            let clean = { ts: parseCustomDate(d.ts) }; 
+                            seriesConfig.forEach(s => { if(d[s.key] !== undefined) clean[s.key] = Number(d[s.key]); });
+                            return clean;
+                        }).sort((a, b) => a.ts - b.ts);
+
+                        if (allData.length > 0) {
+                            lastDate = allData[allData.length - 1].ts;
+                        }
+
+                        createChart(allData);
+                        startLiveSync();
+                    } catch(e) { showError("Data Error: " + e.toString()); }
+                },
+                error: function(e) { showError("Load Failed."); },
+                complete: function() { setLoading(false); isChartLoading = false; }
+            });
+        }
+
+        function createChart(data) {
+            if(!data || data.length === 0) return;
+
+            // Determine Theme Colors for Initial Creation
+            const isLight = document.documentElement.classList.contains('light');
+            const c = {
+                text: isLight ? '#334155' : '#e2e8f0',
+                textMuted: isLight ? '#64748b' : '#94a3b8',
+                grid: isLight ? '#e2e8f0' : '#334155',
+                bg: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 41, 59, 0.95)',
+                border: isLight ? '#cbd5e1' : '#334155',
+                track: isLight ? 'rgba(128,128,128,0.05)' : '#1e293b'
+            };
+
+            const yAxes = [];
+            const seriesList = [];
+            let activeIndex = 0;
+            
+            let leftAxesCount = 0;
+            let rightAxesCount = 0;
+
+            seriesConfig.forEach((cfg) => {
+                if(cfg.visible) {
+                    const isRight = (activeIndex % 2 !== 0);
+                    
+                    const offset = isRight 
+                        ? (rightAxesCount * Y_AXIS_SPACING) 
+                        : (leftAxesCount * Y_AXIS_SPACING);
+
+                    yAxes.push({
+                        id: `axis-${cfg.key}`,
+                        title: { 
+                            text: cfg.unit, 
+                            style: { color: cfg.color },
+                            margin: 10 
+                        },
+                        labels: { 
+                            style: { color: cfg.color },
+                            format: `{value:.2f}`
+                        },
+                        opposite: isRight,
+                        offset: offset, 
+                        gridLineWidth: activeIndex === 0 ? 1 : 0, 
+                        gridLineColor: c.grid, // Dynamic
+                        lineColor: cfg.color,
+                        lineWidth: 1,
+                        showEmpty: false
+                    });
+
+                    const seriesData = data
+                        .filter(d => d[cfg.key] !== undefined && d[cfg.key] !== null)
+                        .map(d => [d.ts, d[cfg.key]]);
+                        
+                    seriesList.push({
+                        name: cfg.name,
+                        data: seriesData,
+                        yAxis: `axis-${cfg.key}`,
+                        color: cfg.color,
+                        type: 'spline',
+                        lineWidth: 2,
+                        marker: { enabled: false, states: { hover: { enabled: true } } },
+                        tooltip: { valueSuffix: ' ' + cfg.unit },
+                        showInNavigator: true
+                    });
+                    
+                    if(isRight) rightAxesCount++; else leftAxesCount++;
+                    activeIndex++;
+                }
+            });
+
+            const plotBands = [];
+            for(let i=1; i<data.length; i++) {
+                if(data[i].ts - data[i-1].ts > 11 * 60 * 1000) {
+                    plotBands.push({
+                        from: data[i-1].ts,
+                        to: data[i].ts,
+                        color: 'rgba(239, 68, 68, 0.2)',
+                        label: { text: 'OFF', style: { color: '#ef4444', fontWeight: 'bold' }, y: 20 }
+                    });
+                }
+            }
+
+            chart = Highcharts.stockChart('main-chart', {
+                chart: { style: { color: c.text } },
+                yAxis: yAxes,
+                series: seriesList,
+                xAxis: {
+                    type: 'datetime',
+                    plotBands: plotBands,
+                    gridLineColor: c.grid,
+                    lineColor: c.grid,
+                    tickColor: c.grid,
+                    labels: { style: { color: c.textMuted } },
+                    events: {
+                        afterSetExtremes: function(e) {
+                            const min = e.min;
+                            const max = e.max;
+                            const visibleData = allData.filter(d => d.ts >= min && d.ts <= max);
+                            updateStats(visibleData);
+                        }
+                    }
+                },
+                plotOptions: {
+                    series: { dataGrouping: { enabled: true, approximation: 'average' } }
+                },
+                navigator: {
+                    outlineColor: c.grid,
+                    xAxis: { gridLineColor: c.grid, labels: { style: { color: c.textMuted } } }
+                },
+                scrollbar: {
+                    barBackgroundColor: c.grid,
+                    trackBackgroundColor: c.track,
+                    trackBorderColor: c.grid
+                },
+                tooltip: {
+                    backgroundColor: c.bg,
+                    style: { color: c.text },
+                    borderColor: c.border
+                },
+                chart: {
+                    events: {
+                        load: function() {
+                            const max = data[data.length - 1].ts;
+                            const min = max - (currentZoomHours * 3600 * 1000);
+                            this.xAxis[0].setExtremes(min, max);
+                            updateStats(data.filter(d => d.ts >= min && d.ts <= max));
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStats(data) {
+            const container = document.getElementById('stats-bar');
+            container.innerHTML = "";
+            if(!data || data.length === 0) return;
+
+            seriesConfig.forEach(cfg => {
+                if(cfg.visible) {
+                    let max = -Infinity;
+                    data.forEach(d => {
+                        let val = d[cfg.key];
+                        if(val !== undefined && val !== null && val > max) max = val;
+                    });
+                    if(max > -Infinity) {
+                        let div = document.createElement('div');
+                        div.className = 'stat-item';
+                        div.innerHTML = `<span class="stat-label" style="color:${cfg.color}">${cfg.name}</span><span class="stat-val" style="color:${cfg.color}">${max.toFixed(2)} <span style="font-size:0.7em; opacity:0.7">${cfg.unit}</span></span>`;
+                        container.appendChild(div);
+                    }
+                }
+            });
+        }
+
+        function toggleSeries(index, btn) {
+            const cfg = seriesConfig[index];
+            cfg.visible = !cfg.visible;
+            btn.classList.toggle('active');
+            
+            // Handle clean toggle of styles
+            if(cfg.visible) {
+                btn.style.backgroundColor = cfg.color;
+                btn.style.borderColor = 'transparent';
+                btn.style.color = 'white';
+            } else {
+                btn.style.backgroundColor = 'transparent';
+                btn.style.borderColor = ''; 
+                btn.style.color = ''; 
+            }
+            
+            if (allData.length > 0) createChart(allData);
+        }
+
+        function hideAllSeries() {
+            seriesConfig.forEach((cfg, idx) => {
+                cfg.visible = false;
+                const btn = document.getElementById(`btn-${idx}`);
+                if(btn) { 
+                    btn.classList.remove('active'); 
+                    btn.style.backgroundColor = 'transparent'; 
+                    btn.style.borderColor = ''; 
+                    btn.style.color = ''; 
+                }
+            });
+            toggleSeries(0, document.getElementById('btn-0'));
+        }
+
+        function startLiveSync() {
+            if (liveSyncInterval) clearInterval(liveSyncInterval);
+            if (currentSheetName === latestSheetName && document.getElementById("liveToggle").checked) {
+                liveSyncInterval = setInterval(liveSync, 15000);
+            }
+        }
+
+        function liveSync() {
+            if (!document.getElementById("liveToggle").checked || isChartLoading || currentSheetName !== latestSheetName) return;
+            $.getJSON(`${GOOGLE_SCRIPT_URL}?action=getDashboardState&_=${new Date().getTime()}`, function(res) {
+                if(res.success && res.latest) {
+                    const l = res.latest;
+                    const serverTs = parseCustomDate(l.ts);
+                    if (serverTs > lastDate) {
+                        lastDate = serverTs;
+                        const pt = { ts: serverTs, temp: l.temp, vol: l.vol, cur: l.cur, pow: l.pow, freq: l.freq, pf: l.pf, eng: l.monthEng, cost: l.monthCost };
+                        allData.push(pt);
+                        if(chart) {
+                             seriesConfig.forEach((cfg, idx) => {
+                                 if(cfg.visible) {
+                                     const series = chart.series.find(s => s.name === cfg.name);
+                                     if(series && pt[cfg.key] !== undefined) {
+                                         series.addPoint([pt.ts, pt[cfg.key]], true, false);
+                                     }
+                                 }
+                             });
+                        }
+                    }
+                }
+            });
+        }
+
+        function parseCustomDate(input) {
+            let timestamp;
+            if (typeof input === 'number') {
+                timestamp = input;
+            } else if (typeof input === 'string') {
+                const parts = input.split(/[-/:\s]/); 
+                if(parts.length >= 6) {
+                    timestamp = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4], parts[5]).getTime();
+                } else {
+                    timestamp = new Date().getTime();
+                }
+            } else {
+                timestamp = new Date().getTime();
+            }
+            return timestamp + 3600000;
+        }
+
+        function setLoading(state, msg) {
+            document.getElementById('loader').style.display = state ? 'flex' : 'none';
+            if(msg) document.getElementById('loader-text').innerText = msg;
+        }
+        function showError(msg) {
+            document.getElementById('error-message').innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i><br>${msg}`;
+            document.getElementById('error-message').style.display = 'block';
+        }
+    </script>
+</head>
+<body>
+    <div id="loader" class="loading-overlay"><div class="spinner"></div><p id="loader-text" style="margin-top:15px; color:#cbd5e1; font-size:0.9rem;">Loading...</p></div>
+
+    <div id="header">
+        <div class="brand"><a href="index.html" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-chevron-left"></i><span>WaliTech | Historical Chart Pro</span></a></div>
+        
+        <!-- 5. INSERTED: Header Controls -->
+        <div class="header-controls">
+            <select id="sheetSelector"><option>Loading...</option></select>
+            <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme">
+                <i id="theme-icon" class="fa-solid fa-sun"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="chart-wrapper">
+        <div id="stats-bar"></div>
+        <div id="chart-container">
+            <div id="main-chart"></div>
+            <div id="no-data-message" class="status-msg"><i class="fa-regular fa-folder-open fa-3x" style="margin-bottom:10px; opacity:0.5;"></i><br>No Data Available</div>
+            <div id="error-message" class="status-msg"></div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div id="toggle-container" class="toggle-group"></div>
+        <div class="footer-tools">
+            <div class="switch-wrapper"><label class="switch"><input type="checkbox" id="liveToggle" checked><span class="slider"></span></label><span>Live Sync</span></div>
+            <span style="opacity:0.5;">v3.7</span>
+        </div>
+    </div>
+</body>
+</html>

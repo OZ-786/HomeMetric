@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+    <meta name="theme-color" content="#000000" />
+    
+    <!-- FORCED DESKTOP VIEWPORT -->
+    <meta name="viewport" content="width=1280, initial-scale=0.3, user-scalable=yes">
+    
+    <title>WaliTech | Historical Chart Single-Axis</title>
+
+    <!-- 1. INSERTED: Theme Detection Script -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.add('light');
+            } else {
+                document.documentElement.classList.remove('light');
+            }
+        })();
+    </script>
+   
+    <!-- Libraries -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highstock/6.0.3/highstock.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highstock/6.0.3/modules/exporting.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+   
+    <style>
+      :root {
+          /* Dark Theme (Default) */
+          --bg: #000000;
+          --panel: #1a1a1a;
+          --border: #333333;
+          --text: #ffffff;
+          --text-muted: #bfbfbf;
+          --btn-bg: #004b5e;
+          --input-bg: #333333;
+          --back-btn-bg: rgba(20, 20, 20, 0.8);
+      }
+
+      html.light {
+          /* Light Theme Overrides */
+          --bg: #f8fafc;
+          --panel: #ffffff;
+          --border: #cbd5e1;
+          --text: #0f172a;
+          --text-muted: #475569;
+          --btn-bg: #2563eb;
+          --input-bg: #f1f5f9;
+          --back-btn-bg: rgba(255, 255, 255, 0.9);
+      }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: 'Segoe UI', sans-serif;
+        min-width: 1280px; 
+        overflow-x: auto;
+        transition: background 0.3s, color 0.3s;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column; 
+      }
+
+      /* --- BACK BUTTON --- */
+      #back-btn {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        z-index: 100;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 14px;
+        background: var(--back-btn-bg);
+        padding: 8px 15px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        font-weight: 600;
+        transition: 0.3s;
+      }
+      #back-btn:hover { color: var(--text); border-color: var(--text); }
+
+      /* --- CHART CONTAINER --- */
+      #chart-container {
+        flex: 1; 
+        width: 100%;
+        min-height: 0; 
+        position: relative;
+        background-color: var(--bg);
+      }
+
+      /* --- CONTROLS AREA --- */
+      #below-chart {
+        flex-shrink: 0; 
+        background-color: var(--panel);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px; 
+        border-top: 1px solid var(--border);
+        padding: 15px 10px;
+        flex-wrap: nowrap; 
+        white-space: nowrap;
+        min-height: 70px;
+        z-index: 50;
+        transition: background 0.3s, border-color 0.3s;
+      }
+
+      /* --- UI ELEMENTS --- */
+      .control-group {
+          display:flex; 
+          flex-direction: column; 
+          align-items: center; 
+          font-size: 11px; 
+          color: var(--text-muted);
+          min-width: 80px;
+      }
+
+      .buttt, button {
+        background-color: var(--btn-bg);
+        border-radius:4px;
+        color: #ffffff;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        outline: none;
+        cursor: pointer;
+        font-size: 13px;
+        width: 100%;
+        text-align: center;
+        margin-top: 4px;
+        transition: 0.3s;
+      }
+      
+      select.buttt {
+          background-color: var(--input-bg);
+          color: var(--text);
+      }
+
+      /* Theme Button Specifics */
+      #theme-btn {
+          background-color: var(--input-bg);
+          color: var(--text);
+          border: 1px solid var(--border);
+          width: auto;
+          padding: 8px 15px;
+      }
+      #theme-btn:hover { background-color: var(--border); }
+      
+      #buttonLoad { background-color:#be123c; border-color:#be123c; }
+      
+      .loading-msg {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 16px;
+        color: var(--text-muted);
+      }
+      
+      .loading-msg img { height: 150px; width: 150px; }
+
+    </style>
+	
+    <script type="text/javascript">
+    
+    // Initial Highcharts Setup
+	Highcharts.setOptions({
+        global: { useUTC: false },
+        colors: ['#3366ff', '#ff0000', '#f4740b', '#ff0066', '#FFFF33', '#54e49e', '#2b908f', '#f45b5b', '#91e8e1'],
+        chart: {
+            // Background is handled by CSS, we make chart transparent initially
+            backgroundColor: 'transparent', 
+            type: 'spline', 
+            style: { fontFamily: "'Segoe UI', sans-serif" },
+            spacingTop: 50 
+        },
+        yAxis: {
+            gridLineColor: '#333333',
+            labels: { style: { color: '#bfbfbf' } },
+            title: { style: { color: '#bfbfbf' } }
+        },
+        xAxis: {
+            gridLineColor: '#333333',
+            labels: { style: { color: '#bfbfbf' } },
+            title: { style: { color: '#bfbfbf' } }
+        },
+        legend: {
+            itemStyle: { color: '#bfbfbf', fontWeight: 'bold' },
+            itemHoverStyle: { color: '#33cccc' },
+            itemHiddenStyle: { color: 'gray' }
+        },
+        rangeSelector: {
+            buttonTheme: {
+                fill: '#1a1a1a',
+                stroke: '#000000',
+                style: { color: '#bfbfbf', fontWeight: 'bold' },
+                states: {
+                    hover: { fill: '#333333', style: { color: 'white' } },
+                    select: { fill: '#004b5e', style: { color: 'white' } }
+                }
+            },
+            inputStyle: { color: '#bfbfbf', fontWeight: 'bold', backgroundColor: '#333' },
+            labelStyle: { color: '#bfbfbf', fontWeight: 'bold' },
+            selected: 3
+        },
+        tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            style: { color: '#F0F0F0' },
+            valueDecimals: 2,
+            shared: true,
+            xDateFormat: '%Y-%m-%d %H:%M:%S'
+        },
+        scrollbar: {
+            barBackgroundColor: '#333333',
+            trackBackgroundColor: '#1a1a1a',
+            trackBorderColor: '#333333',
+            height: 14 
+        },
+        navigator: {
+            enabled: true,
+            height: 40, 
+            maskFill: 'rgba(51, 102, 255, 0.2)',
+            outlineColor: '#333333',
+            xAxis: { gridLineColor: '#333333' }
+        }
+    });
+
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxH13m5DXcyBH2BZ0qp1H3GovZCXEDRbjnD5yzj_KZL3O_MAGXG9PKu8dQdyDHhX0Vi_A/exec";
+
+    var dynamicChart;
+    var currentSheetName = "";
+    var latestSheetName = "";
+    var allData = [];
+    var liveSyncInterval = null;
+    var lastDate = 0;
+
+    var seriesConfig = [
+        { name: 'VOLTAGE', key: 'vol', unit: 'V', visible: true, color: '#3366ff' },
+        { name: 'POWER', key: 'pow', unit: 'W', visible: true, color: '#ff0000' },
+        { name: 'FREQUENCY', key: 'freq', unit: 'Hz', visible: false, color: '#f4740b' },
+        { name: 'ENERGY', key: 'eng', unit: 'kWh', visible: false, color: '#ff0066' },
+        { name: 'CURRENT', key: 'cur', unit: 'A', visible: false, color: '#FFFF33' },
+        { name: 'PF', key: 'pf', unit: '', visible: false, color: '#54e49e' },
+        { name: 'TEMP', key: 'temp', unit: '°C', visible: false, color: '#2b908f' },
+        { name: 'COST', key: 'cost', unit: '₦', visible: false, color: '#f45b5b' }
+    ];
+
+    $(document).ready(function() {
+        initApp();
+        populateParamSelector();
+        
+        // Initialize Icon
+        const isLight = document.documentElement.classList.contains('light');
+        document.getElementById('theme-icon').className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    });
+
+    // --- 2. THEME FUNCTIONS ---
+    function toggleTheme() {
+        const html = document.documentElement;
+        const btnIcon = document.getElementById('theme-icon');
+        
+        if (html.classList.contains('light')) {
+            html.classList.remove('light');
+            localStorage.setItem('theme', 'dark');
+            btnIcon.className = 'fa-solid fa-sun';
+        } else {
+            html.classList.add('light');
+            localStorage.setItem('theme', 'light');
+            btnIcon.className = 'fa-solid fa-moon';
+        }
+        updateChartTheme();
+    }
+
+    function updateChartTheme() {
+        if(!dynamicChart) return;
+        const isLight = document.documentElement.classList.contains('light');
+        
+        const c = {
+            textColor: isLight ? '#334155' : '#bfbfbf',
+            gridColor: isLight ? '#e2e8f0' : '#333333',
+            inputBg: isLight ? '#f1f5f9' : '#333333',
+            tooltipBg: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.85)',
+            tooltipText: isLight ? '#334155' : '#F0F0F0',
+            btnFill: isLight ? '#f1f5f9' : '#1a1a1a',
+            btnHover: isLight ? '#e2e8f0' : '#333333',
+            btnSelect: isLight ? '#2563eb' : '#004b5e'
+        };
+
+        dynamicChart.update({
+            chart: { backgroundColor: 'transparent' },
+            xAxis: {
+                gridLineColor: c.gridColor,
+                lineColor: c.gridColor,
+                tickColor: c.gridColor,
+                labels: { style: { color: c.textColor } },
+                title: { style: { color: c.textColor } }
+            },
+            yAxis: {
+                gridLineColor: c.gridColor,
+                labels: { style: { color: c.textColor } },
+                title: { style: { color: c.textColor } }
+            },
+            legend: {
+                itemStyle: { color: c.textColor }
+            },
+            rangeSelector: {
+                buttonTheme: {
+                    fill: c.btnFill,
+                    stroke: c.gridColor,
+                    style: { color: c.textColor },
+                    states: {
+                        hover: { fill: c.btnHover },
+                        select: { fill: c.btnSelect, style: { color: 'white' } }
+                    }
+                },
+                inputStyle: { color: c.textColor, backgroundColor: c.inputBg },
+                labelStyle: { color: c.textColor }
+            },
+            navigator: {
+                outlineColor: c.gridColor,
+                xAxis: { gridLineColor: c.gridColor }
+            },
+            scrollbar: {
+                barBackgroundColor: c.gridColor,
+                trackBackgroundColor: isLight ? 'rgba(0,0,0,0.05)' : '#1a1a1a',
+                trackBorderColor: c.gridColor
+            },
+            tooltip: {
+                backgroundColor: c.tooltipBg,
+                style: { color: c.tooltipText },
+                borderColor: c.gridColor
+            }
+        });
+    }
+
+    function initApp() {
+        $.ajax({
+            url: `${GOOGLE_SCRIPT_URL}?action=getDashboardState&_=${new Date().getTime()}`,
+            dataType: 'json',
+            success: function(res) {
+                if(res.success && res.sheets.length > 0) {
+                    populateSheetSelector(res.sheets);
+                    latestSheetName = res.sheets[0];
+                    loadChartData(res.sheets[0]);
+                } else {
+                    $('#chart-container').html('<div class="loading-msg">No data found.</div>');
+                }
+            },
+            error: function(e) { $('#chart-container').html('<div class="loading-msg">Connection Failed.</div>'); }
+        });
+    }
+
+    function populateSheetSelector(sheets) {
+        var menu = document.getElementById("Channel Select");
+        menu.innerHTML = "";
+        sheets.forEach(function(s) {
+            var option = document.createElement("option");
+            option.value = s;
+            option.text = s;
+            menu.appendChild(option);
+        });
+        menu.onchange = function() { loadChartData(this.value); };
+    }
+    
+    function populateParamSelector() {
+        var menu = document.getElementById("ParamSelector");
+        menu.innerHTML = "<option value='all'>Show All</option>";
+        seriesConfig.forEach(function(s, index) {
+            var option = document.createElement("option");
+            option.value = index;
+            option.text = s.name;
+            menu.appendChild(option);
+        });
+    }
+
+    function loadChartData(sheetName) {
+        currentSheetName = sheetName;
+        $('#chart-container').html(`
+            <div class="loading-msg">
+                Loading Data...<br>
+                <img src="https://i.pinimg.com/originals/58/4b/60/584b607f5c2ff075429dc0e7b8d142ef.gif">
+            </div>
+        `);
+
+        if(dynamicChart) { dynamicChart.destroy(); dynamicChart = null; }
+        allData = [];
+
+        $.ajax({
+            url: `${GOOGLE_SCRIPT_URL}?action=getMonthData&sheet=${encodeURIComponent(sheetName)}&_=${new Date().getTime()}`,
+            dataType: 'json',
+            success: function(res) {
+                if (!res.success) { 
+                    $('#chart-container').html('<div class="loading-msg">Error loading data.</div>'); 
+                    return; 
+                }
+                
+                allData = res.data.map(d => {
+                    let clean = { ts: parseCustomDate(d.ts) };
+                    seriesConfig.forEach(s => { if(d[s.key] !== undefined) clean[s.key] = Number(d[s.key]); });
+                    return clean;
+                }).sort((a, b) => a.ts - b.ts);
+
+                if (allData.length > 0) lastDate = allData[allData.length - 1].ts;
+
+                createChart(allData);
+                startLiveSync();
+            },
+            error: function() { $('#chart-container').html('<div class="loading-msg">Load failed!</div>'); }
+        });
+    }
+
+    function createChart(data) {
+        // We define initial styles based on current Theme
+        const isLight = document.documentElement.classList.contains('light');
+        const c = {
+            textColor: isLight ? '#334155' : '#bfbfbf',
+            gridColor: isLight ? '#e2e8f0' : '#333333',
+            inputBg: isLight ? '#f1f5f9' : '#333333',
+            tooltipBg: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.85)',
+            tooltipText: isLight ? '#334155' : '#F0F0F0',
+            btnFill: isLight ? '#f1f5f9' : '#1a1a1a',
+            btnHover: isLight ? '#e2e8f0' : '#333333',
+            btnSelect: isLight ? '#2563eb' : '#004b5e'
+        };
+
+        var chartOptions = {
+            chart: { renderTo: 'chart-container', zoomType: 'x', backgroundColor: 'transparent' },
+            rangeSelector: {
+                buttons: [
+                    { count: 1, type: 'hour', text: '1H' },
+                    { count: 6, type: 'hour', text: '6H' },
+                    { count: 12, type: 'hour', text: '12H' },
+                    { count: 1, type: 'day', text: '1D' },
+                    { count: 3, type: 'day', text: '3D' },
+                    { count: 1, type: 'week', text: '1W' },
+                    { count: 2, type: 'week', text: '2W' },
+                    { count: 1, type: 'month', text: 'M' },
+                    { type: 'all', text: 'All' }
+                ],
+                inputEnabled: true,
+                selected: 3,
+                buttonTheme: {
+                    fill: c.btnFill,
+                    stroke: c.gridColor,
+                    style: { color: c.textColor },
+                    states: {
+                        hover: { fill: c.btnHover },
+                        select: { fill: c.btnSelect, style: { color: 'white' } }
+                    }
+                },
+                inputStyle: { color: c.textColor, backgroundColor: c.inputBg },
+                labelStyle: { color: c.textColor }
+            },
+            
+            title: { text: '' },
+            plotOptions: {
+                series: {
+                    threshold: null,
+                    fillOpacity: 0.1, 
+                    lineWidth: 1.5,
+                    dataGrouping: { enabled: true },
+                    events: {
+                        legendItemClick: function () {
+                            var series = this;
+                            setTimeout(function() { updateYAxisLabel(series.chart); }, 100); 
+                        }
+                    }
+                }
+            },
+            exporting: { enabled: true, csv: { dateFormat: '%Y-%m-%d %H:%M:%S' } },
+            legend: { enabled: true, itemStyle: { color: c.textColor } },
+            yAxis: [{
+                title: { text: 'Data', style: { color: c.textColor } }, 
+                lineWidth: 1,
+                lineColor: c.gridColor,
+                gridLineColor: c.gridColor,
+                labels: { style: { color: c.textColor } },
+                opposite: false
+            }],
+            xAxis: {
+                gridLineColor: c.gridColor,
+                lineColor: c.gridColor,
+                tickColor: c.gridColor,
+                labels: { style: { color: c.textColor } }
+            },
+            tooltip: {
+                backgroundColor: c.tooltipBg,
+                style: { color: c.tooltipText },
+                borderColor: c.gridColor,
+                valueDecimals: 2,
+                shared: true,
+                xDateFormat: '%Y-%m-%d %H:%M:%S'
+            },
+            navigator: {
+                outlineColor: c.gridColor,
+                xAxis: { gridLineColor: c.gridColor }
+            },
+            scrollbar: {
+                barBackgroundColor: c.gridColor,
+                trackBackgroundColor: isLight ? 'rgba(0,0,0,0.05)' : '#1a1a1a',
+                trackBorderColor: c.gridColor
+            },
+            series: []
+        };
+
+        seriesConfig.forEach(function(cfg) {
+             var seriesData = data.map(d => [d.ts, d[cfg.key]]);
+             chartOptions.series.push({
+                 name: cfg.name,
+                 data: seriesData,
+                 color: cfg.color,
+                 visible: cfg.visible,
+                 tooltip: { valueSuffix: ' ' + cfg.unit },
+                 customUnit: cfg.unit 
+             });
+        });
+
+        dynamicChart = new Highcharts.StockChart(chartOptions);
+        updateYAxisLabel(dynamicChart);
+    }
+    
+    function updateYAxisLabel(chart) {
+        if(!chart) return;
+        var visibleSeries = chart.series.filter(s => s.visible && s.name !== 'Navigator');
+        var axis = chart.yAxis[0];
+        
+        // Use a generic text color unless specific
+        const isLight = document.documentElement.classList.contains('light');
+        const defaultColor = isLight ? '#334155' : '#bfbfbf';
+        
+        if (visibleSeries.length === 1) {
+            var s = visibleSeries[0];
+            var unit = s.options.customUnit || '';
+            var title = s.name + (unit ? ' (' + unit + ')' : '');
+            axis.setTitle({ text: title, style: { color: s.color } });
+            
+            var dropdown = document.getElementById("ParamSelector");
+            var idx = seriesConfig.findIndex(c => c.name === s.name);
+            if(idx > -1) dropdown.value = idx;
+            
+        } else if (visibleSeries.length > 1) {
+            axis.setTitle({ text: 'Data', style: { color: defaultColor } });
+            document.getElementById("ParamSelector").value = 'all';
+        } else {
+            axis.setTitle({ text: 'No Data', style: { color: defaultColor } });
+        }
+    }
+
+    function HideAll() {
+        if(!dynamicChart) return;
+        for (var i = 0; i < dynamicChart.series.length; i++) {
+            if (dynamicChart.series[i].name == 'Navigator') continue;
+            dynamicChart.series[i].hide();
+        }
+        updateYAxisLabel(dynamicChart);
+    }
+
+    function selectSingleParameter(indexStr) {
+        if(!dynamicChart) return;
+        if(indexStr === 'all') {
+            for (var i = 0; i < dynamicChart.series.length; i++) {
+                if (dynamicChart.series[i].name == 'Navigator') continue;
+                dynamicChart.series[i].show();
+            }
+        } else {
+            var targetIndex = parseInt(indexStr);
+            var targetName = seriesConfig[targetIndex].name;
+            for (var i = 0; i < dynamicChart.series.length; i++) {
+                var s = dynamicChart.series[i];
+                if (s.name == 'Navigator') continue;
+                if (s.name === targetName) s.show(); else s.hide();
+            }
+        }
+        updateYAxisLabel(dynamicChart);
+    }
+
+    function startLiveSync() {
+        if (liveSyncInterval) clearInterval(liveSyncInterval);
+        liveSyncInterval = setInterval(function() {
+            if (document.getElementById("Update").checked && currentSheetName === latestSheetName) {
+                 $.getJSON(`${GOOGLE_SCRIPT_URL}?action=getDashboardState&_=${new Date().getTime()}`, function(res) {
+                    if(res.success && res.latest) {
+                        var l = res.latest;
+                        var serverTs = parseCustomDate(l.ts);
+                        if (serverTs > lastDate) {
+                            lastDate = serverTs;
+                            var pt = { ts: serverTs, temp: l.temp, vol: l.vol, cur: l.cur, pow: l.pow, freq: l.freq, pf: l.pf, eng: l.monthEng, cost: l.monthCost };
+                            seriesConfig.forEach((cfg, idx) => {
+                                var s = dynamicChart.series.find(ser => ser.name === cfg.name);
+                                if(s) { s.addPoint([pt.ts, pt[cfg.key]], true, false); }
+                            });
+                        }
+                    }
+                 });
+            }
+        }, 15000); 
+    }
+
+    function parseCustomDate(input) {
+        let timestamp;
+        if (typeof input === 'number') {
+            timestamp = input;
+        } else if (typeof input === 'string') {
+            const parts = input.split(/[-/:\s]/); 
+            if(parts.length >= 6) {
+                timestamp = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4], parts[5]).getTime();
+            } else { timestamp = new Date().getTime(); }
+        } else { timestamp = new Date().getTime(); }
+        return timestamp + 3600000; 
+    }
+
+  </script>
+  </head>
+  <body>
+    <!-- Back Button -->
+    <a href="index.html" id="back-btn"><i class="fa-solid fa-arrow-left"></i> Home</a>
+
+    <div id="chart-container">
+        <!-- Initial Loading View -->
+      <div class="loading-msg">
+          WaliTech | SmartHomeMetrics<br>
+          Initializing...<br>
+          <img src="https://i.pinimg.com/originals/58/4b/60/584b607f5c2ff075429dc0e7b8d142ef.gif">
+      </div>
+    </div>
+    
+    <div id="below-chart"> 
+	
+        <div class="control-group">
+            <label>DISPLAY</label>
+            <button id="buttonSSS" value="Hide All" onclick="HideAll();">Hide All</button>
+        </div>
+		
+        <div class="control-group">
+            <label>SHEET</label>
+            <select class="buttt" id="Channel Select"></select>
+        </div>
+
+        <div class="control-group">
+            <label>PARAMETER</label>
+            <select class="buttt" id="ParamSelector" onchange="selectSingleParameter(this.value)"></select>
+        </div>
+        
+        <div class="control-group">
+            <label>ACTION</label>
+            <button id="buttonLoad" onclick="loadChartData(currentSheetName);">RELOAD</button>
+        </div>
+        
+        <!-- 3. INSERTED: Theme Button in Control Bar -->
+        <div class="control-group">
+            <label>THEME</label>
+            <button id="theme-btn" onclick="toggleTheme()">
+                <i id="theme-icon" class="fa-solid fa-sun"></i>
+            </button>
+        </div>
+	  
+        <div style="display:flex; align-items:center; margin-left:10px;">
+          <input id="Update" name="Update" type="checkbox" checked>
+          <span style="font-family: Lucida Grande; font-size: 13px; margin-left:3px; color:var(--text-muted);">Live Sync</span> 
+        </div>
+
+    </div>
+  </body>
+</html>
