@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=1280, initial-scale=0.25, maximum-scale=5.0, user-scalable=yes">
     <title>WaliTech | Monthly Report</title>
 
-    <!-- Theme Detection (Prevents Flash) -->
+    <!-- Theme Detection -->
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme');
@@ -25,46 +25,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
     <style>
-        /* --- THEME VARIABLES --- */
-        
-        /* 1. DEFAULT (LIGHT MODE) */
         :root {
             --bg-deep: #f8fafc;
             --bg-grad-start: #e2e8f0;
             --bg-grad-end: #f1f5f9;
             --glass: rgba(255, 255, 255, 0.95);
             --glass-border: #cbd5e1;
-            
             --text-main: #0f172a;
             --text-muted: #64748b;
-            
             --neon-blue: #0284c7;
             --neon-green: #16a34a;
             --neon-red: #dc2626;
             --neon-amber: #d97706;
             --neon-purple: #7c3aed;
-            
             --header-bg: #ffffff;
             --loader-bg: #f8fafc;
         }
 
-        /* 2. DARK MODE OVERRIDES (Corrected Selector) */
         html.dark {
             --bg-deep: #050505;
             --bg-grad-start: #111827;
             --bg-grad-end: #020617;
             --glass: rgba(20, 25, 40, 0.85);
             --glass-border: rgba(255, 255, 255, 0.1);
-            
             --text-main: #ffffff;
             --text-muted: #94a3b8;
-            
             --neon-blue: #00f3ff;
             --neon-green: #00ff9d;
             --neon-red: #ff0055;
             --neon-amber: #ffaa00;
             --neon-purple: #a855f7;
-            
             --header-bg: rgba(2, 6, 23, 0.9);
             --loader-bg: #020617;
         }
@@ -82,83 +72,49 @@
             transition: background-color 0.3s, color 0.3s, background-image 0.3s;
         }
 
-        /* --- HEADER --- */
         #header {
-            height: 70px;
-            padding: 0 40px;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid var(--glass-border);
-            background: var(--header-bg);
-            z-index: 50;
+            height: 70px; padding: 0 40px; display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--glass-border); background: var(--header-bg); z-index: 50;
             transition: background-color 0.3s, border-color 0.3s;
         }
 
-        .header-controls {
-            display: flex; align-items: center; gap: 12px;
-        }
+        .header-controls { display: flex; align-items: center; gap: 12px; }
 
         .back-btn, .theme-btn {
             text-decoration: none; color: var(--text-muted); font-weight: 600;
             display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 20px;
             border: 1px solid var(--glass-border); border-radius: 8px; transition: 0.2s;
-            background: rgba(125, 125, 125, 0.05);
-            height: 42px; 
-            cursor: pointer;
+            background: rgba(125, 125, 125, 0.05); height: 42px; cursor: pointer;
         }
         .back-btn:hover, .theme-btn:hover { background: var(--neon-blue); color: white; border-color: var(--neon-blue); }
 
-        .page-title {
-            font-family: 'Rajdhani', sans-serif; font-size: 26px; font-weight: 700;
-            color: var(--text-main); text-transform: uppercase; letter-spacing: 2px;
-        }
+        .page-title { font-family: 'Rajdhani', sans-serif; font-size: 26px; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 2px; }
 
         select {
-            background: var(--glass); border: 1px solid var(--glass-border);
-            color: var(--neon-blue); padding: 0 20px; border-radius: 6px;
-            font-family: 'Rajdhani', sans-serif; font-weight: 600;
-            font-size: 16px; cursor: pointer; outline: none;
-            height: 42px;
+            background: var(--glass); border: 1px solid var(--glass-border); color: var(--neon-blue);
+            padding: 0 20px; border-radius: 6px; font-family: 'Rajdhani', sans-serif; font-weight: 600;
+            font-size: 16px; cursor: pointer; outline: none; height: 42px;
         }
 
-        /* --- CONTENT --- */
         #report-content {
-            flex: 1; padding: 30px 40px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: auto 1fr auto;
-            gap: 25px;
-            overflow-y: auto;
+            flex: 1; padding: 30px 40px; display: grid; grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr auto; gap: 25px; overflow-y: auto;
         }
 
         .glass-card {
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 25px;
-            display: flex; flex-direction: column;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            position: relative;
-            transition: all 0.3s ease;
+            background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px;
+            padding: 25px; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            position: relative; transition: all 0.3s ease;
         }
-        
         html.dark .glass-card { box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
 
         .glass-card.fullscreen {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 100; background: var(--bg-deep);
-            padding: 40px; border-radius: 0;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100;
+            background: var(--bg-deep); padding: 40px; border-radius: 0;
         }
 
-        /* --- SUMMARY --- */
-        .summary-row {
-            grid-column: 1 / -1;
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 0; padding: 0;
-        }
-        .summary-item {
-            display: flex; flex-direction: column; justify-content: center;
-            padding: 25px; border-right: 1px solid var(--glass-border);
-        }
+        .summary-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding: 0; }
+        .summary-item { display: flex; flex-direction: column; justify-content: center; padding: 25px; border-right: 1px solid var(--glass-border); }
         .summary-item:last-child { border-right: none; }
         
         .sum-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 5px; }
@@ -166,43 +122,27 @@
         .sum-unit { font-size: 16px; color: var(--text-muted); font-weight: 500; margin-left: 5px; }
 
         .card-title {
-            font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 600;
-            color: var(--neon-blue); margin-bottom: 20px;
-            display: flex; align-items: center; justify-content: space-between;
+            font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 600; color: var(--neon-blue);
+            margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;
             border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;
         }
         
-        .expand-btn {
-            cursor: pointer; color: var(--text-muted); transition: 0.2s;
-            padding: 5px; border-radius: 5px; background: transparent; border: none;
-        }
+        .expand-btn { cursor: pointer; color: var(--text-muted); transition: 0.2s; padding: 5px; border-radius: 5px; background: transparent; border: none; }
         .expand-btn:hover { color: var(--neon-blue); background: rgba(125,125,125,0.1); }
 
         .chart-container { flex: 1; min-height: 400px; }
 
-        /* --- TABLE --- */
         .table-wrapper { flex: 1; overflow-x: auto; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; }
-        th { 
-            text-align: left; padding: 15px; color: var(--text-muted); 
-            font-size: 12px; text-transform: uppercase; 
-            background: rgba(125,125,125,0.05); 
-            position: sticky; top: 0; z-index: 2;
-        }
+        th { text-align: left; padding: 15px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; background: rgba(125,125,125,0.05); position: sticky; top: 0; z-index: 2; }
         td { padding: 15px; border-bottom: 1px solid var(--glass-border); font-family: 'Rajdhani', sans-serif; font-size: 16px; }
         tr:last-child td { border-bottom: none; }
 
-        /* --- LOADER --- */
         #loader {
             position: fixed; inset: 0; background: var(--loader-bg); z-index: 200;
-            display: flex; align-items: center; justify-content: center; flex-direction: column;
-            transition: background-color 0.3s;
+            display: flex; align-items: center; justify-content: center; flex-direction: column; transition: background-color 0.3s;
         }
-        .spinner {
-            width: 50px; height: 50px; border: 4px solid var(--glass-border);
-            border-top: 4px solid var(--neon-blue); border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+        .spinner { width: 50px; height: 50px; border: 4px solid var(--glass-border); border-top: 4px solid var(--neon-blue); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -217,7 +157,6 @@
         <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
         <div class="page-title">Monthly Energy Report</div>
         <div class="header-controls">
-            <!-- Theme Toggle Button -->
             <button onclick="toggleTheme()" class="theme-btn" title="Toggle Theme">
                 <i id="theme-icon" class="fa-solid fa-moon"></i>
             </button>
@@ -289,14 +228,11 @@
         $(document).ready(() => { 
             updateThemeIcon();
             initReport(); 
-            
-            // Storage listener for cross-tab sync
             window.addEventListener('storage', (e) => {
                 if(e.key === 'theme') {
                     const saved = localStorage.getItem('theme');
                     if(saved === 'dark') document.documentElement.classList.add('dark');
                     else document.documentElement.classList.remove('dark');
-                    
                     updateThemeIcon();
                     if(globalRawData) processMonthlyData(globalRawData);
                 }
@@ -313,7 +249,6 @@
                 localStorage.setItem('theme', 'dark');
             }
             updateThemeIcon();
-            // Re-render charts to read new CSS variables
             if(globalRawData) processMonthlyData(globalRawData);
         }
 
@@ -333,7 +268,6 @@
             const card = document.getElementById('table-card');
             const icon = document.getElementById('expand-icon');
             card.classList.toggle('fullscreen');
-            
             if (card.classList.contains('fullscreen')) {
                 icon.classList.remove('fa-expand');
                 icon.classList.add('fa-compress');
@@ -387,13 +321,122 @@
 
         function processMonthlyData(rawData) {
             try {
-                // 1. RE-CALCULATE COLORS FROM CSS
+                // 1. STRICT DATA CLEANING
+                // Use Number() to preserve full precision (no parseFloat rounding yet)
+                // Filter out 0 or Negative readings (Device resets)
+                const data = rawData
+                    .map(d => ({
+                        ts: parseCustomDate(d.ts),
+                        vol: Number(d.vol)||0, cur: Number(d.cur)||0, 
+                        pow: Number(d.pow)||0, eng: Number(d.eng), cost: Number(d.cost)
+                    }))
+                    .filter(d => d.eng > 0 && d.cost > 0) // Filter invalid rows based on cumulative counters
+                    .sort((a,b) => a.ts - b.ts); // Ensure strict chronological order
+
+                if(data.length === 0) throw new Error("No Valid Energy Data");
+
+                // 2. DAILY MILESTONES (Finding the Last Valid Reading for each day)
+                const dayEndReadings = {}; // Map: Day -> Last Record Object
+                const dailyStats = {};     // Map: Day -> Averages
+
+                data.forEach(d => {
+                    const day = new Date(d.ts).getDate();
+                    
+                    // Since data is sorted, we keep updating this. 
+                    // The final value in the loop for 'day' will be the latest timestamp.
+                    dayEndReadings[day] = d;
+
+                    // Accumulate averages (ignore offline/zero volts)
+                    if (d.vol > 0) {
+                        if (!dailyStats[day]) dailyStats[day] = { sVol:0, sPow:0, sCur:0, count:0 };
+                        dailyStats[day].sVol += d.vol;
+                        dailyStats[day].sPow += d.pow;
+                        dailyStats[day].sCur += d.cur;
+                        dailyStats[day].count++;
+                    }
+                });
+
+                // 3. CONTINUOUS CHAIN CALCULATION
+                // Start Reference: The very first valid reading of the month
+                let previousReference = data[0]; 
+                
+                const days = Object.keys(dayEndReadings).sort((a,b)=>a-b);
+                const pieData = [];
+                const cats = [];
+                const sVol=[], sPow=[], sCur=[], sEng=[];
+                let rows = "";
+                
+                // We sum up the daily deltas. 
+                // Because of the chain logic, Sum(Deltas) = Last - First mathematically.
+                let runningTotalEnergy = 0;
+                let runningTotalCost = 0;
+
+                days.forEach(day => {
+                    const endRec = dayEndReadings[day];
+                    
+                    // The Chain: Usage = Current_End - Previous_End
+                    // Note: No rounding here. Raw subtraction.
+                    let dailyEng = endRec.eng - previousReference.eng;
+                    let dailyCost = endRec.cost - previousReference.cost;
+
+                    // Filter negative jumps (e.g. meter reset / battery swap)
+                    if (dailyEng < 0) dailyEng = 0;
+                    if (dailyCost < 0) dailyCost = 0;
+
+                    // Update Chain
+                    previousReference = endRec;
+
+                    // Add to total
+                    runningTotalEnergy += dailyEng;
+                    runningTotalCost += dailyCost;
+
+                    // Averages
+                    const stats = dailyStats[day];
+                    const avgVol = stats && stats.count ? stats.sVol/stats.count : 0;
+                    const avgPow = stats && stats.count ? stats.sPow/stats.count : 0;
+                    const avgCur = stats && stats.count ? stats.sCur/stats.count : 0;
+
+                    // Prepare Visuals (Now we format for display)
+                    let chartVal = parseFloat(dailyEng.toFixed(2));
+                    pieData.push({ name: `Day ${day}`, y: chartVal });
+                    cats.push(`Day ${day}`);
+                    sVol.push(parseFloat(avgVol.toFixed(1)));
+                    sPow.push(Math.round(avgPow));
+                    sCur.push(parseFloat(avgCur.toFixed(2)));
+                    sEng.push(chartVal);
+
+                    rows += `
+                        <tr style="border-bottom:1px solid var(--glass-border);">
+                            <td>Day ${day}</td>
+                            <td>${avgVol.toFixed(1)}</td>
+                            <td>${avgCur.toFixed(2)}</td>
+                            <td>${Math.round(avgPow)}</td>
+                            <td style="color:var(--neon-amber); font-weight:700;">${dailyEng.toFixed(2)}</td>
+                            <td style="color:var(--neon-green); font-weight:700;">₦${dailyCost.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+                        </tr>`;
+                });
+
+                // UPDATE SUMMARY CARDS (Sum of Table Rows)
+                // Use global averages for the Summary Top Bar
+                const globalCount = data.filter(d => d.vol > 0).length;
+                const globalSumPow = data.reduce((a,b) => a + (b.vol>0?b.pow:0), 0);
+                const globalSumCur = data.reduce((a,b) => a + (b.vol>0?b.cur:0), 0);
+                const globalSumVol = data.reduce((a,b) => a + b.vol, 0);
+                
+                const meanPow = globalCount ? globalSumPow/globalCount : 0;
+                const meanCur = globalCount ? globalSumCur/globalCount : 0;
+                const meanVol = globalCount ? globalSumVol/globalCount : 0;
+
+                $('#sum-energy').text(runningTotalEnergy.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}));
+                $('#sum-cost').text("₦" + runningTotalCost.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0}));
+                $('#sum-pow').text(Math.round(meanPow));
+                $('#sum-cur').text(meanCur.toFixed(2));
+
+                // THEME COLORS & CHARTS
                 const isDark = document.documentElement.classList.contains('dark');
                 const style = getComputedStyle(document.body);
-                
                 const textColor = isDark ? '#94a3b8' : '#64748b';
                 const gridColor = isDark ? '#1e293b' : '#e2e8f0';
-                
                 const cBlue = style.getPropertyValue('--neon-blue').trim();
                 const cGreen = style.getPropertyValue('--neon-green').trim();
                 const cAmber = style.getPropertyValue('--neon-amber').trim();
@@ -408,93 +451,6 @@
                     legend: { itemStyle: { color: textColor }, itemHoverStyle: { color: isDark ? '#fff' : '#000' }, itemHiddenStyle: { color: isDark ? '#444' : '#ccc' } }
                 });
 
-                // 2. PROCESS DATA
-                const data = rawData.map(d => ({
-                    ts: parseCustomDate(d.ts),
-                    vol: parseFloat(d.vol)||0, cur: parseFloat(d.cur)||0, 
-                    pow: parseFloat(d.pow)||0, eng: parseFloat(d.eng)||0, cost: parseFloat(d.cost)||0
-                })).sort((a,b) => a.ts - b.ts);
-
-                const dailyMap = {};
-                let gVol=0, gPow=0, gCur=0, gCount=0;
-
-                data.forEach(d => {
-                    if(d.vol > 0) { gVol+=d.vol; gCount++; }
-                    gPow+=d.pow;
-                    gCur+=d.cur;
-
-                    const day = new Date(d.ts).getDate();
-                    if(!dailyMap[day]) {
-                        dailyMap[day] = { first: d, last: d, sumVol:0, sumPow:0, sumCur:0, count:0 };
-                    }
-                    if(d.ts < dailyMap[day].first.ts) dailyMap[day].first = d;
-                    if(d.ts > dailyMap[day].last.ts) dailyMap[day].last = d;
-
-                    dailyMap[day].sumVol += d.vol;
-                    dailyMap[day].sumPow += d.pow;
-                    dailyMap[day].sumCur += d.cur;
-                    dailyMap[day].count++;
-                });
-
-                const days = Object.keys(dailyMap).sort((a,b)=>a-b);
-                const pieData = [];
-                const cats = [];
-                const sVol=[], sPow=[], sCur=[], sEng=[];
-                let rows = "";
-                let totalEnergy = 0, totalCost = 0;
-
-                for(let i=0; i<days.length; i++) {
-                    const currentDay = days[i];
-                    const nextDay = days[i+1];
-                    const d = dailyMap[currentDay];
-
-                    let dailyEng = 0;
-                    let dailyCost = 0;
-
-                    if(nextDay && dailyMap[nextDay]) {
-                        dailyEng = dailyMap[nextDay].first.eng - d.first.eng;
-                        dailyCost = dailyMap[nextDay].first.cost - d.first.cost;
-                    } else {
-                        dailyEng = d.last.eng - d.first.eng;
-                        dailyCost = d.last.cost - d.first.cost;
-                    }
-                    if(dailyEng < 0) dailyEng = 0; 
-                    if(dailyCost < 0) dailyCost = 0;
-
-                    totalEnergy += dailyEng;
-                    totalCost += dailyCost;
-
-                    const avgVol = d.count ? d.sumVol/d.count : 0;
-                    const avgPow = d.count ? d.sumPow/d.count : 0;
-                    const avgCur = d.count ? d.sumCur/d.count : 0;
-
-                    let chartVal = parseFloat(dailyEng.toFixed(2));
-                    pieData.push({ name: `Day ${currentDay}`, y: chartVal });
-                    cats.push(`Day ${currentDay}`);
-                    sVol.push(parseFloat(avgVol.toFixed(1)));
-                    sPow.push(Math.round(avgPow));
-                    sCur.push(parseFloat(avgCur.toFixed(2)));
-                    sEng.push(chartVal);
-
-                    rows += `
-                        <tr style="border-bottom:1px solid var(--glass-border);">
-                            <td>Day ${currentDay}</td>
-                            <td>${avgVol.toFixed(1)}</td>
-                            <td>${avgCur.toFixed(2)}</td>
-                            <td>${Math.round(avgPow)}</td>
-                            <td style="color:var(--neon-amber); font-weight:700;">${dailyEng.toFixed(2)}</td>
-                            <td style="color:var(--neon-green); font-weight:700;">₦${Math.round(dailyCost).toLocaleString()}</td>
-                        </tr>`;
-                }
-
-                const meanPow = data.length ? gPow/data.length : 0;
-                const meanCur = data.length ? gCur/data.length : 0;
-                
-                $('#sum-energy').text(totalEnergy.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}));
-                $('#sum-cost').text("₦" + totalCost.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0}));
-                $('#sum-pow').text(Math.round(meanPow));
-                $('#sum-cur').text(meanCur.toFixed(2));
-
                 // PIE CHART
                 if(charts['pie']) charts['pie'].destroy();
                 charts['pie'] = Highcharts.chart('energy-pie-chart', {
@@ -503,7 +459,7 @@
                     series: [{ name: 'Energy', data: pieData }]
                 });
 
-                // LINE CHART WITH 3 AXES
+                // LINE CHART
                 if(charts['line']) charts['line'].destroy();
                 charts['line'] = Highcharts.chart('monthly-line-chart', {
                     chart: { type: 'spline', zoomType: 'x' },
