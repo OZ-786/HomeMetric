@@ -65,9 +65,6 @@
     .data-table th { padding: 10px; font-size: 0.75rem; text-transform: uppercase; position: sticky; top: 0; background: inherit; z-index: 10; }
     .data-table td { padding: 10px; border-bottom-width: 1px; font-size: 0.85rem; }
     
-    .zoom-btn { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; transition: all 0.2s; border-width: 1px; }
-    .zoom-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
-    
     .stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
     .stat-val { font-size: 1.25rem; font-weight: 800; }
     .stat-unit { font-size: 0.75rem; font-weight: 600; margin-left: 2px; }
@@ -75,6 +72,24 @@
     
     .info-icon { color: #94a3b8; cursor: pointer; transition: 0.2s; margin-left: 8px; font-size: 0.9rem; }
     .info-icon:hover { color: #3b82f6; }
+
+    .chart-container { height: 300px; width: 100%; }
+    
+    .month-selector {
+      min-width: 180px;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: #334155;
+      cursor: pointer;
+    }
+    .dark .month-selector {
+      background: #1e293b;
+      border-color: #475569;
+      color: #cbd5e1;
+    }
 
     @media (max-width: 768px) {
       .card { padding: 12px; }
@@ -192,8 +207,8 @@
         <h1 class="text-lg font-bold text-slate-800 dark:text-white" id="page-title">Dashboard</h1>
       </div>
       <div class="flex items-center gap-3">
-        <div id="selector-container" class="hidden flex gap-2">
-           <select id="sheetSelector" onchange="fetchMonthData()" class="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-white text-sm rounded-lg p-2 outline-none"><option>Loading...</option></select>
+        <div id="selector-container" class="hidden">
+           <select id="sheetSelector" onchange="fetchMonthData()" class="month-selector"><option>Loading...</option></select>
         </div>
         <div id="top-status-badge" class="status-badge status-off flex items-center"><i class="fa-solid fa-circle text-[6px] mr-2"></i> OFFLINE</div>
       </div>
@@ -336,8 +351,10 @@
 
       <!-- 3. ANALYSIS -->
       <div id="page-analysis" class="hidden space-y-4 md:space-y-6">
-        <div class="flex justify-between items-center flex-col md:flex-row gap-2"><h2 class="text-xl font-bold text-slate-800 dark:text-white">Smart Analysis</h2></div>
-        
+        <div class="flex justify-between items-center flex-col md:flex-row gap-2">
+          <h2 class="text-xl font-bold text-slate-800 dark:text-white">Smart Analysis</h2>
+        </div>
+
         <div class="card bg-white dark:bg-slate-800 border dark:border-slate-700">
             <div class="flex items-center gap-2 mb-4">
                 <h3 class="font-bold text-slate-700 dark:text-slate-200">Power Usage Intensity (Heatmap)</h3>
@@ -501,11 +518,11 @@
     // --- MAIN LOGIC ---
     let chartInst = {};
     let globalData = []; 
-    let currentZoomHours = 24;
     let monthlyBudget = 50000; 
     let mobileMenuTimeout;
     let touchStartX = 0;
     let touchEndX = 0;
+    let availableMonths = [];
 
     window.onload = function() {
       refreshData();
@@ -623,9 +640,50 @@
       if(res.budget) { monthlyBudget = parseFloat(res.budget); }
 
       const sheetSel = document.getElementById('sheetSelector');
-      if(sheetSel.options.length <= 1) {
+      if(sheetSel.options.length <= 1 && res.sheets && res.sheets.length > 0) {
         sheetSel.innerHTML = "";
-        res.sheets.forEach(s => { let o = document.createElement('option'); o.value = s; o.text = s; sheetSel.appendChild(o); });
+        availableMonths = res.sheets;
+        
+        // Sort months in reverse chronological order (newest first)
+        availableMonths.sort((a, b) => {
+          const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'];
+          
+          const getMonthYear = (str) => {
+            for (let month of monthOrder) {
+              if (str.includes(month)) {
+                const yearMatch = str.match(/\d{4}/);
+                const year = yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear();
+                return { month: monthOrder.indexOf(month), year };
+              }
+            }
+            return { month: -1, year: new Date().getFullYear() };
+          };
+          
+          const aDate = getMonthYear(a);
+          const bDate = getMonthYear(b);
+          
+          if (aDate.year !== bDate.year) return bDate.year - aDate.year;
+          return bDate.month - aDate.month;
+        });
+        
+        availableMonths.forEach(s => { 
+          let o = document.createElement('option'); 
+          o.value = s; 
+          o.text = s; 
+          sheetSel.appendChild(o); 
+        });
+        
+        // Auto-select current month
+        setTimeout(() => {
+          const currentMonth = getCurrentMonthYear();
+          for (let i = 0; i < sheetSel.options.length; i++) {
+            if (sheetSel.options[i].text.includes(currentMonth)) {
+              sheetSel.selectedIndex = i;
+              break;
+            }
+          }
+        }, 100);
       }
 
       if(res.latest) {
@@ -677,6 +735,13 @@
       }
     }
 
+    function getCurrentMonthYear() {
+      const now = new Date();
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                     'July', 'August', 'September', 'October', 'November', 'December'];
+      return `${months[now.getMonth()]} ${now.getFullYear()}`;
+    }
+
     function setTxt(id, val) { document.getElementById(id).innerText = val; }
 
     function toggleChartsMenu() {
@@ -713,7 +778,19 @@
       if(p === 'analysis') {
         document.getElementById('selector-container').classList.remove('hidden');
         document.getElementById('sheetSelector').classList.remove('hidden');
-        fetchMonthData();
+        
+        // Auto-select current month when opening Smart Analysis
+        setTimeout(() => {
+          const currentMonth = getCurrentMonthYear();
+          const sheetSelector = document.getElementById('sheetSelector');
+          for (let i = 0; i < sheetSelector.options.length; i++) {
+            if (sheetSelector.options[i].text.includes(currentMonth)) {
+              sheetSelector.selectedIndex = i;
+              break;
+            }
+          }
+          fetchMonthData();
+        }, 100);
       } else if (p === 'yearly') {
         fetchDetailedYearly();
       } else if (p === 'alerts') {
@@ -724,44 +801,65 @@
 
     function fetchMonthData() {
       const s = document.getElementById('sheetSelector').value;
-      if(s && s!=="Loading...") { toggleLoader(true); google.script.run.withSuccessHandler(r => { renderMonth(r); toggleLoader(false); }).getMonthData(s); }
+      if(s && s !== "Loading..." && s !== "No data available") { 
+        toggleLoader(true); 
+        google.script.run.withSuccessHandler(r => { 
+          console.log("Data received for:", s, r);
+          if (r.success && r.data && r.data.length > 0) {
+            renderMonth(r); 
+          } else {
+            alert(`No data available for ${s}. The sheet might be empty or data format is incorrect.`);
+            clearAllCharts();
+          }
+          toggleLoader(false); 
+        }).getMonthData(s); 
+      }
     }
 
-    function setZoom(hours) {
-      toggleLoader(true); 
-      currentZoomHours = hours;
-      document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
-      setTimeout(() => { if(globalData.length > 0) renderMonth({success:true, data: globalData}); toggleLoader(false); }, 50);
+    function clearAllCharts() {
+      Object.keys(chartInst).forEach(key => {
+        if (chartInst[key]) {
+          chartInst[key].destroy();
+          delete chartInst[key];
+        }
+      });
+      
+      document.getElementById('table-weekly-rows').innerHTML = '<tr><td colspan="3">No data available</td></tr>';
+      document.getElementById('table-24h').innerHTML = '<tr><td colspan="5">No data available</td></tr>';
+      document.getElementById('table-48h').innerHTML = '<tr><td colspan="5">No data available</td></tr>';
+      document.getElementById('grid-on-txt').textContent = '--';
+      document.getElementById('grid-off-txt').textContent = '--';
+      
+      ['chart-heatmap', 'chart-weekly-bar', 'chart-grid-donut'].forEach(id => {
+        const container = document.getElementById(id);
+        if (container) {
+          container.innerHTML = '<div class="flex items-center justify-center h-full text-slate-400">No data available</div>';
+        }
+      });
     }
 
     function renderMonth(res) {
-      if(!res.success) return;
+      if(!res.success || !res.data || res.data.length === 0) {
+        alert("No data available for the selected month");
+        clearAllCharts();
+        return;
+      }
+      
       globalData = res.data;
       const d = res.data;
-      const latestTs = d[d.length-1].ts;
-      const cutoff = latestTs - (currentZoomHours * 3600 * 1000);
-      const filtered = d.filter(x => x.ts > cutoff);
-      const rate = Math.ceil(filtered.length/400); 
-      const cd = filtered.filter((_, i) => i % rate === 0);
       
-      const isDark = document.documentElement.classList.contains('dark');
-      const textColor = isDark ? '#cbd5e1' : '#374151';
-
-      renderApex('chart-vol', 'Voltage', '#3b82f6', cd, 'vol', textColor);
-      renderApex('chart-pow', 'Power', '#f97316', cd, 'pow', textColor);
-      renderApex('chart-eng', 'Energy', '#eab308', cd, 'eng', textColor);
-
+      const latestTs = d[d.length-1].ts;
+      
       const d24 = d.filter(x => (latestTs - x.ts) <= 86400000);
       const d48 = d.filter(x => (latestTs - x.ts) <= 172800000);
       populateTable('table-24h', d24);
       populateTable('table-48h', d48);
       renderGridAnalysis(d, 'chart-grid-donut', 'grid-on-txt', 'grid-off-txt');
-      renderHeatmap(d, textColor);
-      calculateWeekly(d, textColor);
+      renderHeatmap(d);
+      calculateWeekly(d);
     }
 
-    function calculateWeekly(data, textColor) {
+    function calculateWeekly(data) {
        let weeks = {1:{}, 2:{}, 3:{}, 4:{}, 5:{}};
        for(let i=1;i<=5;i++) weeks[i] = { costS: 999999, costE: 0, engS: 999999, engE: 0, hasData: false };
        data.forEach(d => {
@@ -785,10 +883,10 @@
           }
        }
        document.getElementById('table-weekly-rows').innerHTML = html || "<tr><td colspan='3'>No Data</td></tr>";
-       renderBar('chart-weekly-bar', cats, series, '#22c55e', textColor);
+       renderBar('chart-weekly-bar', cats, series);
     }
 
-    function renderHeatmap(data, textColor) {
+    function renderHeatmap(data) {
        let grid = Array(7).fill().map(() => Array(24).fill(0));
        let counts = Array(7).fill().map(() => Array(24).fill(0));
        data.forEach(d => {
@@ -801,10 +899,27 @@
        for(let d=0; d<7; d++) { for(let h=0; h<24; h++) { if(counts[d][h]>0) grid[d][h] = Math.round(grid[d][h] / counts[d][h]); } }
        const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
        let series = days.map((day, i) => ({ name: day, data: grid[i].map((v, h) => ({x: h.toString().padStart(2,'0')+":00", y: v})) })).reverse();
+       
+       const isDark = document.documentElement.classList.contains('dark');
+       const textColor = isDark ? '#cbd5e1' : '#374151';
+       
        if(chartInst['heatmap']) chartInst['heatmap'].destroy();
        chartInst['heatmap'] = new ApexCharts(document.querySelector("#chart-heatmap"), {
-         series: series, chart: { type: 'heatmap', height: 300, toolbar: {show:false}, foreColor: textColor }, dataLabels: { enabled: false },
-         plotOptions: { heatmap: { shadeIntensity: 0.5, colorScale: { ranges: [{from:0, to:100, color:'#10b981', name:'Low'},{from:101, to:400, color:'#facc15', name:'Med'},{from:401, to:10000, color:'#ef4444', name:'High'}] } } }
+         series: series, 
+         chart: { type: 'heatmap', height: 300, toolbar: {show:false}, foreColor: textColor }, 
+         dataLabels: { enabled: false },
+         plotOptions: { 
+           heatmap: { 
+             shadeIntensity: 0.5, 
+             colorScale: { 
+               ranges: [
+                 {from:0, to:100, color:'#10b981', name:'Low'},
+                 {from:101, to:400, color:'#facc15', name:'Med'},
+                 {from:401, to:10000, color:'#ef4444', name:'High'}
+               ] 
+             } 
+           } 
+         }
        });
        chartInst['heatmap'].render();
     }
@@ -813,22 +928,48 @@
       let html = "";
       [{k:'vol', n:'Volt', u:'V'}, {k:'pow', n:'Power', u:'W'}, {k:'temp', n:'Temp', u:'C'}].forEach(p => {
          let max = -999, min = 999, maxT = "", minT = "";
-         dataset.forEach(d => { if(d[p.k] > max) { max = d[p.k]; maxT = d.tsStr.split(' ')[1]; } if(d[p.k] < min && d[p.k] > 0) { min = d[p.k]; minT = d.tsStr.split(' ')[1]; } });
+         dataset.forEach(d => { 
+           if(d[p.k] > max) { 
+             max = d[p.k]; 
+             maxT = d.tsStr ? d.tsStr.split(' ')[1] : 'N/A'; 
+           } 
+           if(d[p.k] < min && d[p.k] > 0) { 
+             min = d[p.k]; 
+             minT = d.tsStr ? d.tsStr.split(' ')[1] : 'N/A'; 
+           } 
+         });
+         if (max === -999) max = 0;
+         if (min === 999) min = 0;
+         
          html += `<tr><td>${p.n}</td><td class="text-red-600 dark:text-red-400 font-bold">${max.toFixed(1)}${p.u}</td><td class="text-xs text-slate-500">${maxT}</td><td class="text-blue-600 dark:text-blue-400 font-bold">${min.toFixed(1)}${p.u}</td><td class="text-xs text-slate-500">${minT}</td></tr>`;
       });
-      document.getElementById(id).innerHTML = html;
+      document.getElementById(id).innerHTML = html || "<tr><td colspan='5'>No data</td></tr>";
     }
 
     function renderGridAnalysis(data, chartId, onId, offId) {
-      let offTime = 0; for(let i=1; i<data.length; i++) { let diff = (data[i].ts - data[i-1].ts) / 1000 / 60; if(diff > 11) offTime += diff; }
-      let totalSpan = (data[data.length-1].ts - data[0].ts) / 1000 / 60; let onTime = Math.max(0, totalSpan - offTime);
-      let onHrs = (onTime/60).toFixed(1); let offHrs = (offTime/60).toFixed(1);
-      document.getElementById(onId).innerText = `${onHrs}h`; document.getElementById(offId).innerText = `${offHrs}h`;
+      let offTime = 0; 
+      for(let i=1; i<data.length; i++) { 
+        let diff = (data[i].ts - data[i-1].ts) / 1000 / 60; 
+        if(diff > 11) offTime += diff; 
+      }
+      let totalSpan = (data[data.length-1].ts - data[0].ts) / 1000 / 60; 
+      let onTime = Math.max(0, totalSpan - offTime);
+      let onHrs = (onTime/60).toFixed(1); 
+      let offHrs = (offTime/60).toFixed(1);
+      
+      document.getElementById(onId).innerText = `${onHrs}h`; 
+      document.getElementById(offId).innerText = `${offHrs}h`;
+      
       const isDark = document.documentElement.classList.contains('dark');
       if(chartInst[chartId]) chartInst[chartId].destroy();
+      
       chartInst[chartId] = new ApexCharts(document.querySelector("#"+chartId), {
-         series: [parseFloat(onHrs), parseFloat(offHrs)], chart: {type: 'donut', height: 250, foreColor: isDark?'#cbd5e1':'#374151'},
-         labels: ['On-Grid', 'Off-Grid'], colors: ['#16a34a', '#dc2626'], legend: {position: 'bottom'}, stroke: { show: false }
+         series: [parseFloat(onHrs), parseFloat(offHrs)], 
+         chart: {type: 'donut', height: 200, foreColor: isDark?'#cbd5e1':'#374151'},
+         labels: ['On-Grid', 'Off-Grid'], 
+         colors: ['#16a34a', '#dc2626'], 
+         legend: {position: 'bottom'}, 
+         stroke: { show: false }
       });
       chartInst[chartId].render();
     }
@@ -905,28 +1046,35 @@
     function exportCSV(type) {
        if(!globalData || globalData.length === 0) return alert("No data");
        let csv = "data:text/csv;charset=utf-8,";
-       if(type === 'charts') { csv += "Time,Vol,Cur,Pow,Eng,Cost\n"; globalData.forEach(r => csv += `${r.tsStr},${r.vol},${r.cur},${r.pow},${r.eng},${r.cost}\n`); }
-       else { csv += "Year,Month,Cost,Eng\n"; globalData.forEach(r => csv += `${r.year},${r.monthIdx+1},${r.cost},${r.energy}\n`); }
-       const link = document.createElement("a"); link.href = encodeURI(csv); link.download = `report_${type}.csv`; document.body.appendChild(link); link.click();
+       if(type === 'charts') { 
+         csv += "Time,Voltage,Current,Power,Energy,Cost\n"; 
+         globalData.forEach(r => csv += `${r.tsStr},${r.vol},${r.cur},${r.pow},${r.eng},${r.cost}\n`); 
+         filename = 'smart_analysis_export.csv';
+       } else { 
+         csv += "Year,Month,Cost,Eng\n"; 
+         globalData.forEach(r => csv += `${r.year},${r.monthIdx+1},${r.cost},${r.energy}\n`);
+         filename = 'yearly_report.csv';
+       }
+       const link = document.createElement("a"); 
+       link.href = encodeURI(csv); 
+       link.download = filename;
+       document.body.appendChild(link); 
+       link.click();
+       document.body.removeChild(link);
     }
 
-    function renderApex(id, name, color, data, key, textColor) {
-      if(chartInst[id]) chartInst[id].destroy();
-      chartInst[id] = new ApexCharts(document.querySelector("#"+id), {
-        series: [{ name: name, data: data.map(d => [d.ts, d[key]]) }],
-        chart: { type: 'area', height: 250, toolbar:{show:false}, animations: {enabled:false}, foreColor: textColor },
-        stroke: { curve: 'smooth', width: 2 }, fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.1 } },
-        colors: [color], xaxis: { type: 'datetime', tooltip: {enabled:false} },
-        tooltip: { theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light', x: {format: 'dd MMM HH:mm'} }
-      });
-      chartInst[id].render();
-    }
-    
-    function renderBar(id, cats, data, color, textColor) {
+    function renderBar(id, cats, data) {
        if(chartInst[id]) chartInst[id].destroy();
+       
+       const isDark = document.documentElement.classList.contains('dark');
+       const textColor = isDark ? '#cbd5e1' : '#374151';
+       
        chartInst[id] = new ApexCharts(document.querySelector("#"+id), {
-          series: [{name:'Value', data:data}], chart: {type:'bar', height:250, toolbar:{show:false}, foreColor: textColor},
-          colors: [color], xaxis: {categories:cats}, plotOptions: {bar: {borderRadius:4}},
+          series: [{name:'Cost (₦)', data:data}], 
+          chart: {type:'bar', height:250, toolbar:{show:false}, foreColor: textColor},
+          colors: ['#22c55e'], 
+          xaxis: {categories:cats}, 
+          plotOptions: {bar: {borderRadius:4}},
           tooltip: { theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light' }
        });
        chartInst[id].render();
